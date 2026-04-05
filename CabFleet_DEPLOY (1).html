@@ -1,0 +1,2554 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CabFleet Pro — Fleet Management System</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Rajdhani:wght@400;500;600;700&family=Noto+Sans+Tamil:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #111318;
+    --surface2: #181c24;
+    --border: #1e2330;
+    --accent: #f5a623;
+    --accent2: #00d4aa;
+    --accent3: #e84545;
+    --accent4: #6c63ff;
+    --text: #e8eaf0;
+    --text2: #8892a4;
+    --text3: #4a5568;
+    --safe: #00d4aa;
+    --warn: #f5a623;
+    --danger: #e84545;
+    --info: #6c63ff;
+    --font-mono: 'Space Mono', monospace;
+    --font-ui: 'Rajdhani', sans-serif;
+    --font-tamil: 'Noto Sans Tamil', sans-serif;
+
+    /* CRT Blue-White LCD Theme */
+    --crt-bg: #030810;
+    --crt-amber: #a8d8ff;
+    --crt-amber-dim: #2a5580;
+    --crt-amber-glow: rgba(168,216,255,0.15);
+    --crt-scan: rgba(168,216,255,0.025);
+    --crt-border: #0a2a44;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-ui);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(245,166,35,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(245,166,35,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ===== HEADER ===== */
+  .header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(10,12,16,0.95);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex; align-items: center;
+    justify-content: space-between;
+    height: 64px;
+  }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-icon { width:36px;height:36px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px; }
+  .logo-text { font-family:var(--font-mono);font-size:16px;font-weight:700;letter-spacing:-0.5px; }
+  .logo-text span { color: var(--accent); }
+  .header-right { display:flex;align-items:center;gap:16px; }
+  .live-badge { display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;color:var(--safe);background:rgba(0,212,170,0.08);border:1px solid rgba(0,212,170,0.2);padding:4px 10px;border-radius:20px; }
+  .live-dot { width:6px;height:6px;background:var(--safe);border-radius:50%;animation:pulse 1.5s infinite; }
+  .fb-status { font-family:var(--font-mono);font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid;transition:all 0.3s; }
+  .fb-status.connecting { color:#f5a623;border-color:rgba(245,166,35,0.3);background:rgba(245,166,35,0.08); }
+  .fb-status.connected { color:var(--safe);border-color:rgba(0,212,170,0.3);background:rgba(0,212,170,0.08); }
+  .fb-status.error { color:var(--danger);border-color:rgba(232,69,69,0.3);background:rgba(232,69,69,0.08); }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(0.8)} }
+  .clock { font-family:var(--font-mono);font-size:13px;color:var(--text2); }
+
+  /* ===== TABS ===== */
+  .tabs { display:flex;gap:0;border-bottom:1px solid var(--border);background:var(--surface);padding:0 24px;overflow-x:auto;position:relative;z-index:10; }
+  .tab { padding:14px 20px;font-family:var(--font-ui);font-size:14px;font-weight:600;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s;white-space:nowrap;letter-spacing:0.5px;text-transform:uppercase; }
+  .tab:hover { color:var(--text2); }
+  .tab.active { color:var(--accent);border-bottom-color:var(--accent); }
+
+  /* ===== MAIN ===== */
+  .main { padding:24px;max-width:1400px;margin:0 auto;position:relative;z-index:1; }
+  .panel { display:none; }
+  .panel.active { display:block;animation:fadeIn 0.3s ease; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)} }
+
+  .section-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:20px; }
+  .section-title { font-family:var(--font-mono);font-size:13px;color:var(--text2);letter-spacing:2px;text-transform:uppercase; }
+  .section-title span { color:var(--accent);margin-right:8px; }
+
+  /* ===== STAT CARDS ===== */
+  .stats-row { display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px; }
+  .stat-card { background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;position:relative;overflow:hidden;transition:border-color 0.2s; }
+  .stat-card::before { content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--card-color,var(--accent)); }
+  .stat-card:hover { border-color:var(--card-color,var(--accent)); }
+  .stat-label { font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px; }
+  .stat-value { font-family:var(--font-mono);font-size:28px;font-weight:700;color:var(--card-color,var(--accent));line-height:1; }
+  .stat-sub { font-size:12px;color:var(--text3);margin-top:4px; }
+
+  /* ===== CAR GRID ===== */
+  .car-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px; }
+  .car-card { background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden; }
+  .car-card:hover { border-color:var(--accent);transform:translateY(-1px);box-shadow:0 8px 24px rgba(245,166,35,0.08); }
+  .car-card.danger { border-color:rgba(232,69,69,0.3); }
+  .car-card.warning { border-color:rgba(245,166,35,0.3); }
+  .car-card.offline { opacity:0.6; }
+  .car-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:12px; }
+  .car-number { font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--accent);background:rgba(245,166,35,0.1);padding:3px 8px;border-radius:4px; }
+  .status-dot { width:8px;height:8px;border-radius:50%; }
+  .status-dot.online { background:var(--safe);animation:pulse 2s infinite; }
+  .status-dot.offline { background:var(--text3); }
+  .status-dot.danger { background:var(--danger);animation:pulse 1s infinite; }
+  .car-driver { font-size:13px;color:var(--text2);margin-bottom:10px; }
+  .fuel-bar-wrap { margin-bottom:8px; }
+  .fuel-label { display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:4px; }
+  .fuel-bar { height:4px;background:var(--border);border-radius:2px;overflow:hidden; }
+  .fuel-fill { height:100%;border-radius:2px;transition:width 0.5s ease; }
+  .fuel-fill.safe { background:var(--safe); }
+  .fuel-fill.warn { background:var(--warn); }
+  .fuel-fill.danger { background:var(--danger); }
+  .car-meta { display:flex;gap:8px;flex-wrap:wrap;margin-top:8px; }
+  .tag { font-size:10px;padding:2px 7px;border-radius:3px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px; }
+  .tag.adulterated { background:rgba(232,69,69,0.15);color:var(--danger);border:1px solid rgba(232,69,69,0.3); }
+  .tag.toll-low { background:rgba(245,166,35,0.15);color:var(--warn);border:1px solid rgba(245,166,35,0.3); }
+  .tag.running { background:rgba(0,212,170,0.1);color:var(--safe);border:1px solid rgba(0,212,170,0.2); }
+  .tag.parked { background:rgba(74,85,104,0.3);color:var(--text2);border:1px solid var(--border); }
+
+  /* ===== DRIVER PANEL ===== */
+  .driver-panel-grid { display:grid;grid-template-columns:320px 1fr;gap:20px; }
+  .driver-selector { background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden; }
+  .driver-selector-header { padding:16px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:1px; }
+  .driver-list { max-height:500px;overflow-y:auto; }
+  .driver-item { padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.15s;display:flex;align-items:center;gap:12px; }
+  .driver-item:hover { background:var(--surface2); }
+  .driver-item.selected { background:rgba(245,166,35,0.08);border-left:3px solid var(--accent); }
+  .driver-avatar { width:36px;height:36px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0; }
+  .driver-info-name { font-size:14px;font-weight:600;color:var(--text); }
+  .driver-info-car { font-family:var(--font-mono);font-size:11px;color:var(--accent);margin-top:2px; }
+  .driver-detail { background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px; }
+  .driver-detail-header { display:flex;align-items:center;gap:16px;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border); }
+  .driver-big-avatar { width:60px;height:60px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:28px;border:2px solid var(--accent); }
+  .driver-detail-name { font-size:22px;font-weight:700; }
+  .driver-detail-meta { display:flex;gap:12px;margin-top:4px; }
+  .detail-grid { display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px; }
+  .detail-box { background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px; }
+  .detail-box-label { font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px; }
+  .detail-box-value { font-family:var(--font-mono);font-size:20px;font-weight:700; }
+  .detail-box-value.safe { color:var(--safe); }
+  .detail-box-value.warn { color:var(--warn); }
+  .detail-box-value.danger { color:var(--danger); }
+
+  /* ===== VOICE BUTTON ===== */
+  .voice-btn { width:100%;padding:14px;background:linear-gradient(135deg,var(--accent4) 0%,#4a90e2 100%);border:none;border-radius:10px;color:white;font-family:var(--font-ui);font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;margin-bottom:12px; }
+  .voice-btn:hover { transform:translateY(-1px);box-shadow:0 8px 20px rgba(108,99,255,0.3); }
+  .voice-btn.speaking { animation:speakPulse 0.5s infinite alternate; }
+  @keyframes speakPulse { from{box-shadow:0 0 0 0 rgba(108,99,255,0.5)}to{box-shadow:0 0 0 12px rgba(108,99,255,0)} }
+
+  /* ===== FUEL PANEL ===== */
+  .fuel-panel-grid { display:grid;grid-template-columns:1fr 360px;gap:20px; }
+  .bunk-list { display:flex;flex-direction:column;gap:10px; }
+  .bunk-card { background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;display:flex;align-items:center;gap:16px;transition:all 0.2s; }
+  .bunk-card:hover { border-color:var(--accent); }
+  .bunk-status-icon { width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0; }
+  .bunk-status-icon.safe { background:rgba(0,212,170,0.1); }
+  .bunk-status-icon.unsafe { background:rgba(232,69,69,0.1); }
+  .bunk-status-icon.caution { background:rgba(245,166,35,0.1); }
+  .bunk-info { flex:1; }
+  .bunk-name { font-size:15px;font-weight:700;color:var(--text);margin-bottom:2px; }
+  .bunk-location { font-size:12px;color:var(--text2);margin-bottom:6px; }
+  .bunk-stats { display:flex;gap:12px; }
+  .bunk-stat { font-size:12px;color:var(--text2); }
+  .bunk-stat span { font-weight:700;color:var(--text); }
+  .bunk-rating { font-family:var(--font-mono);font-size:20px;font-weight:700;text-align:center;flex-shrink:0; }
+  .bunk-rating.safe { color:var(--safe); }
+  .bunk-rating.unsafe { color:var(--danger); }
+  .bunk-rating.caution { color:var(--warn); }
+
+  /* ===== LOG PANEL ===== */
+  .log-container { background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden; }
+  .log-toolbar { padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between; }
+  .log-list { max-height:500px;overflow-y:auto;font-family:var(--font-mono);font-size:12px; }
+  .log-entry { padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:12px;animation:slideIn 0.3s ease; }
+  @keyframes slideIn { from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)} }
+  .log-time { color:var(--text3);flex-shrink:0;width:70px; }
+  .log-type { flex-shrink:0;width:80px; }
+  .log-type.fuel { color:var(--warn); }
+  .log-type.toll { color:var(--info); }
+  .log-type.alert { color:var(--danger); }
+  .log-type.info { color:var(--safe); }
+  .log-type.start { color:var(--accent); }
+  .log-type.esp32 { color:#ff6eb4; }
+  .log-msg { color:var(--text2); }
+
+  /* ===== TOLL PANEL ===== */
+  .toll-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px; }
+  .toll-card { background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;transition:all 0.2s;position:relative;overflow:hidden; }
+  .toll-card.critical { border-color:rgba(232,69,69,0.4); }
+  .toll-card.warning { border-color:rgba(245,166,35,0.3); }
+  .toll-card.critical::before { content:'⚠ CRITICAL';position:absolute;top:10px;right:10px;font-size:9px;font-weight:700;color:var(--danger);letter-spacing:1px; }
+  .toll-car-num { font-family:var(--font-mono);font-size:14px;color:var(--accent);margin-bottom:6px;font-weight:700; }
+  .toll-driver-name { font-size:14px;color:var(--text2);margin-bottom:12px; }
+  .toll-balance { font-family:var(--font-mono);font-size:26px;font-weight:700;margin-bottom:4px; }
+  .toll-balance.ok { color:var(--safe); }
+  .toll-balance.warn { color:var(--warn); }
+  .toll-balance.crit { color:var(--danger); }
+  .toll-days { font-size:12px;color:var(--text2);margin-bottom:12px; }
+  .toll-progress { height:3px;background:var(--border);border-radius:2px;overflow:hidden; }
+  .toll-progress-fill { height:100%;border-radius:2px; }
+
+  /* ===== BUTTONS ===== */
+  .btn { padding:8px 16px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:var(--font-ui);font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;letter-spacing:0.3px; }
+  .btn:hover { border-color:var(--accent);color:var(--accent); }
+  .btn-accent { background:var(--accent);color:#000;border-color:var(--accent); }
+  .btn-accent:hover { background:#e6971a;color:#000;border-color:#e6971a; }
+  .btn-danger { background:rgba(232,69,69,0.1);color:var(--danger);border-color:rgba(232,69,69,0.3); }
+  .btn-sm { padding:5px 10px;font-size:11px; }
+
+  /* ===== ALERT BANNER ===== */
+  .alert-banner { background:rgba(232,69,69,0.08);border:1px solid rgba(232,69,69,0.25);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px;margin-bottom:20px;animation:alertPulse 2s infinite; }
+  @keyframes alertPulse { 0%,100%{border-color:rgba(232,69,69,0.25)}50%{border-color:rgba(232,69,69,0.5)} }
+  .alert-icon { font-size:20px;flex-shrink:0; }
+  .alert-text { font-size:14px;font-weight:600; }
+  .alert-sub { font-size:12px;color:var(--text2);margin-top:2px; }
+
+  /* ===== MISC ===== */
+  ::-webkit-scrollbar { width:4px;height:4px; }
+  ::-webkit-scrollbar-track { background:var(--surface); }
+  ::-webkit-scrollbar-thumb { background:var(--border);border-radius:2px; }
+  .search-input { background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 14px;color:var(--text);font-family:var(--font-ui);font-size:13px;outline:none;width:200px;transition:border-color 0.2s; }
+  .search-input:focus { border-color:var(--accent); }
+  .search-input::placeholder { color:var(--text3); }
+  .adul-meter { display:flex;align-items:center;gap:8px;margin-top:8px; }
+  .adul-bar { flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden; }
+  .adul-fill { height:100%;border-radius:3px; }
+  .adul-fill.low { background:var(--safe); }
+  .adul-fill.mid { background:var(--warn); }
+  .adul-fill.high { background:var(--danger); }
+  .adul-pct { font-family:var(--font-mono);font-size:12px;font-weight:700;width:36px;text-align:right; }
+  .adul-pct.low { color:var(--safe); }
+  .adul-pct.mid { color:var(--warn); }
+  .adul-pct.high { color:var(--danger); }
+  .info-card { background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px; }
+  .info-card-title { font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px; }
+  .tamil-text { font-family:var(--font-tamil);font-size:13px;color:var(--text2);line-height:1.6; }
+
+  /* ===== CRT AMBER DISPLAY ===== */
+  #panel-esp32 { display:none; }
+  #panel-esp32.active { display:block; }
+
+  .crt-screen {
+    background: var(--crt-bg);
+    border: 2px solid var(--crt-border);
+    border-radius: 16px;
+    padding: 28px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 40px rgba(168,216,255,0.06), inset 0 0 60px rgba(0,0,0,0.6);
+  }
+
+  /* Scanlines */
+  .crt-screen::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      var(--crt-scan) 2px,
+      var(--crt-scan) 4px
+    );
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  /* Vignette */
+  .crt-screen::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.6) 100%);
+    pointer-events: none;
+    z-index: 3;
+  }
+
+  .crt-content { position: relative; z-index: 4; }
+
+  .crt-header {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--crt-amber-dim);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .crt-title {
+    font-family: var(--font-mono);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--crt-amber);
+    letter-spacing: 4px;
+    text-shadow: 0 0 20px var(--crt-amber), 0 0 40px rgba(168,216,255,0.3);
+    margin-bottom: 24px;
+    animation: crtFlicker 8s infinite;
+  }
+
+  @keyframes crtFlicker {
+    0%,96%,98%,100% { opacity: 1; }
+    97% { opacity: 0.85; }
+    99% { opacity: 0.95; }
+  }
+
+  .crt-divider {
+    border: none;
+    border-top: 1px solid var(--crt-amber-dim);
+    margin: 18px 0;
+    opacity: 0.5;
+  }
+
+  /* Readings Grid */
+  .crt-readings {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .crt-reading-card {
+    background: rgba(255,179,0,0.04);
+    border: 1px solid var(--crt-border);
+    border-radius: 8px;
+    padding: 18px;
+    position: relative;
+    transition: all 0.3s;
+  }
+
+  .crt-reading-card.alert-active {
+    border-color: var(--crt-amber);
+    box-shadow: 0 0 12px rgba(255,179,0,0.2);
+    animation: crtCardPulse 1s infinite alternate;
+  }
+
+  .crt-reading-card.danger-active {
+    border-color: #ff4444;
+    box-shadow: 0 0 12px rgba(255,68,68,0.3);
+    animation: crtDangerPulse 0.5s infinite alternate;
+  }
+
+  @keyframes crtCardPulse {
+    from { box-shadow: 0 0 8px rgba(255,179,0,0.15); }
+    to { box-shadow: 0 0 20px rgba(255,179,0,0.35); }
+  }
+  @keyframes crtDangerPulse {
+    from { box-shadow: 0 0 8px rgba(255,68,68,0.2); }
+    to { box-shadow: 0 0 20px rgba(255,68,68,0.5); }
+  }
+
+  .crt-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--crt-amber-dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .crt-value {
+    font-family: var(--font-mono);
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--crt-amber);
+    text-shadow: 0 0 16px var(--crt-amber), 0 0 32px rgba(168,216,255,0.3);
+    line-height: 1;
+    margin-bottom: 4px;
+    transition: color 0.5s, text-shadow 0.5s;
+  }
+
+  .crt-value.crt-warn {
+    color: #ffd080;
+    text-shadow: 0 0 16px #ffd080, 0 0 32px rgba(255,208,128,0.3);
+  }
+
+  .crt-value.crt-danger {
+    color: #ff6060;
+    text-shadow: 0 0 16px #ff6060, 0 0 32px rgba(255,96,96,0.5);
+    animation: dangerBlink 0.8s infinite;
+  }
+
+  @keyframes dangerBlink {
+    0%,49% { opacity: 1; }
+    50%,100% { opacity: 0.6; }
+  }
+
+  .crt-unit {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--crt-amber-dim);
+    letter-spacing: 1px;
+  }
+
+  .crt-bar-wrap { margin-top: 10px; }
+  .crt-bar-track {
+    height: 4px;
+    background: rgba(255,179,0,0.1);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+  }
+  .crt-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--crt-amber);
+    box-shadow: 0 0 6px var(--crt-amber);
+    transition: width 0.8s ease;
+  }
+  .crt-bar-fill.crt-bar-warn { background: #ffd080; box-shadow: 0 0 6px #ffd080; }
+  .crt-bar-fill.crt-bar-danger { background: #ff6060; box-shadow: 0 0 8px #ff6060; }
+
+  /* Status indicator */
+  .crt-status-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 10px;
+  }
+
+  .crt-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--crt-amber);
+    box-shadow: 0 0 8px var(--crt-amber);
+  }
+  .crt-dot.online { animation: crtDotPulse 1.5s infinite; }
+  .crt-dot.offline { background: #1a3a5c; box-shadow: none; }
+  .crt-dot.danger { background: #ff6060; box-shadow: 0 0 8px #ff6060; animation: crtDotPulse 0.5s infinite; }
+
+  @keyframes crtDotPulse {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.3; transform: scale(0.7); }
+  }
+
+  .crt-status-txt {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--crt-amber-dim);
+    letter-spacing: 1px;
+  }
+
+  /* ESP32 Live Panel */
+  .esp32-panel-grid {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 20px;
+  }
+
+  .esp32-device-list {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .esp32-device-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .esp32-device-item {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .esp32-device-item:hover { background: var(--surface2); }
+  .esp32-device-item.selected { background: rgba(255,179,0,0.06); border-left: 3px solid var(--crt-amber); }
+
+  .device-icon {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    background: rgba(255,179,0,0.08);
+    border: 1px solid var(--crt-border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+
+  .device-name { font-size: 14px; font-weight: 600; }
+  .device-car { font-family: var(--font-mono); font-size: 11px; color: var(--crt-amber); margin-top: 2px; }
+  .device-last { font-size: 11px; color: var(--text3); }
+
+  /* CRT Terminal Log */
+  .crt-terminal {
+    background: var(--crt-bg);
+    border: 1px solid var(--crt-border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 16px;
+  }
+
+  .crt-terminal-header {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--crt-border);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--crt-amber-dim);
+    letter-spacing: 2px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .crt-log-list {
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 10px 14px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1.6;
+  }
+
+  .crt-log-entry {
+    color: var(--crt-amber-dim);
+    margin-bottom: 2px;
+  }
+
+  .crt-log-entry .ts { color: rgba(255,179,0,0.3); margin-right: 8px; }
+  .crt-log-entry .msg { color: var(--crt-amber); }
+  .crt-log-entry .warn-msg { color: #ff8800; }
+  .crt-log-entry .danger-msg { color: #ff3300; }
+
+  /* ESP32 Code Block */
+  .code-block {
+    background: #0d1117;
+    border: 1px solid #21262d;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .code-header {
+    padding: 10px 16px;
+    background: #161b22;
+    border-bottom: 1px solid #21262d;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: #8b949e;
+  }
+
+  .code-body {
+    padding: 16px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.7;
+    color: #e6edf3;
+    max-height: 420px;
+    overflow-y: auto;
+    white-space: pre;
+  }
+
+  .code-kw { color: #ff7b72; }
+  .code-fn { color: #d2a8ff; }
+  .code-str { color: #a5d6ff; }
+  .code-comment { color: #8b949e; }
+  .code-num { color: #79c0ff; }
+
+  .copy-btn {
+    padding: 4px 10px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid #30363d;
+    border-radius: 5px;
+    color: #8b949e;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .copy-btn:hover { background: rgba(255,255,255,0.1); color: #e6edf3; }
+
+  @media (max-width: 768px) {
+    .driver-panel-grid { grid-template-columns: 1fr; }
+    .fuel-panel-grid { grid-template-columns: 1fr; }
+    .car-grid { grid-template-columns: 1fr 1fr; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .esp32-panel-grid { grid-template-columns: 1fr; }
+    .crt-readings { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 480px) {
+    .car-grid { grid-template-columns: 1fr; }
+    .detail-grid { grid-template-columns: 1fr; }
+    .main { padding: 12px; }
+    .crt-readings { grid-template-columns: 1fr; }
+  }
+  /* ===== LOGIN SCREEN ===== */
+  #login-screen {
+    position: fixed; inset: 0; z-index: 9999;
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-ui);
+  }
+  #login-screen::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(245,166,35,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(245,166,35,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+  .login-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 40px 36px;
+    width: 100%; max-width: 420px;
+    position: relative; z-index: 1;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+  }
+  .login-logo {
+    text-align: center; margin-bottom: 28px;
+  }
+  .login-logo-icon {
+    width: 64px; height: 64px;
+    background: var(--accent);
+    border-radius: 16px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 32px; margin-bottom: 12px;
+  }
+  .login-logo-title {
+    font-family: var(--font-mono);
+    font-size: 22px; font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+  .login-logo-title span { color: var(--accent); }
+  .login-logo-sub {
+    font-size: 13px; color: var(--text2); margin-top: 4px;
+  }
+  .login-divider {
+    display: flex; align-items: center; gap: 10px;
+    margin: 20px 0; color: var(--text3); font-size: 12px;
+  }
+  .login-divider::before, .login-divider::after {
+    content: ''; flex: 1;
+    height: 1px; background: var(--border);
+  }
+  .login-input {
+    width: 100%; padding: 12px 14px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text);
+    font-family: var(--font-ui); font-size: 14px;
+    outline: none; margin-bottom: 10px;
+    transition: border-color 0.2s;
+  }
+  .login-input:focus { border-color: var(--accent); }
+  .login-input::placeholder { color: var(--text3); }
+  .btn-google {
+    width: 100%; padding: 13px;
+    background: #fff; border: none; border-radius: 8px;
+    color: #333; font-size: 15px; font-weight: 700;
+    cursor: pointer; display: flex; align-items: center;
+    justify-content: center; gap: 10px;
+    transition: all 0.2s; margin-bottom: 6px;
+  }
+  .btn-google:hover { background: #f0f0f0; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(255,255,255,0.1); }
+  .btn-google:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+  .btn-email-login {
+    width: 100%; padding: 13px;
+    background: var(--accent); border: none; border-radius: 8px;
+    color: #000; font-size: 15px; font-weight: 700;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .btn-email-login:hover { background: #e6971a; transform: translateY(-1px); }
+  .btn-email-login:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+  .login-error {
+    color: var(--danger); font-size: 13px;
+    text-align: center; margin-top: 10px; min-height: 20px;
+  }
+  /* User info in header */
+  .user-info {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .user-avatar-circle {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--accent); color: #000;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 13px;
+  }
+  .user-name-txt {
+    font-family: var(--font-mono); font-size: 12px; color: var(--text2);
+    max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .btn-logout {
+    padding: 4px 10px; border-radius: 6px;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--text3); font-size: 11px; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-logout:hover { border-color: var(--danger); color: var(--danger); }
+
+</style>
+</head>
+<body>
+
+<!-- ===== LOGIN SCREEN ===== -->
+<div id="login-screen" style="display:flex">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-icon">🚕</div>
+      <div class="login-logo-title">Cab<span>Fleet</span> Pro</div>
+      <div class="login-logo-sub">Fleet Management System</div>
+    </div>
+
+    <!-- Google Login -->
+    <button class="btn-google" id="google-btn" onclick="loginWithGoogle()">
+      <svg width="20" height="20" viewBox="0 0 48 48">
+        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+      </svg>
+      Sign in with Google
+    </button>
+
+    <div class="login-divider">அல்லது Email உடன் Login</div>
+
+    <!-- Email Login -->
+    <input type="email" class="login-input" id="login-email" placeholder="📧 Email address" />
+    <input type="password" class="login-input" id="login-pass" placeholder="🔑 Password" onkeydown="if(event.key==='Enter')loginWithEmail()" />
+    <button class="btn-email-login" id="email-btn" onclick="loginWithEmail()">🔑 Login</button>
+
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- ===== APP SCREEN ===== -->
+<div id="app-screen" style="display:none">
+<header class="header">
+  <div class="logo">
+    <div class="logo-icon">🚕</div>
+    <div class="logo-text">Cab<span>Fleet</span> Pro</div>
+  </div>
+  <div class="header-right">
+    <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+    <div class="fb-status connecting" id="fb-status">🔥 Connecting...</div>
+    <div class="clock" id="clock">--:--:--</div>
+    <div class="user-info">
+      <div class="user-avatar-circle" id="user-avatar">?</div>
+      <div class="user-name-txt" id="user-name">Loading...</div>
+      <button class="btn-logout" onclick="doLogout()">Logout</button>
+    </div>
+  </div>
+</header>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('owner')">🏠 Owner Dashboard</div>
+  <div class="tab" onclick="switchTab('driver')">👤 Driver Details</div>
+  <div class="tab" onclick="switchTab('esp32')">📡 ESP32 Live</div>
+  <div class="tab" onclick="switchTab('fuel')">⛽ Fuel & Adulteration</div>
+  <div class="tab" onclick="switchTab('toll')">🛣️ Toll Tracker</div>
+  <div class="tab" onclick="switchTab('log')">☁️ Cloud Log</div>
+  <div class="tab" onclick="switchTab('hwsetup')" style="color:#ff6eb4;border-bottom-color:transparent" id="hw-tab">🔌 Hardware Setup</div>
+  <div class="tab" onclick="switchTab('firebaseguide')" style="color:#00d4aa;border-bottom-color:transparent" id="fb-guide-tab">🔥 Firebase Guide</div>
+</div>
+
+<div class="main">
+
+  <!-- ===== OWNER DASHBOARD ===== -->
+  <div class="panel active" id="panel-owner">
+    <div class="alert-banner" id="alert-banner">
+      <div class="alert-icon">🚨</div>
+      <div>
+        <div class="alert-text" id="alert-main-text">Firebase-ல் இருந்து data load ஆகிறது...</div>
+        <div class="alert-sub" id="alert-sub-text">Please wait</div>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card" style="--card-color:var(--safe)">
+        <div class="stat-label">Total Fleet</div>
+        <div class="stat-value" id="total">—</div>
+        <div class="stat-sub">Cars registered</div>
+      </div>
+      <div class="stat-card" style="--card-color:var(--accent2)">
+        <div class="stat-label">Running Now</div>
+        <div class="stat-value" id="running-count">—</div>
+        <div class="stat-sub">Active trips</div>
+      </div>
+      <div class="stat-card" style="--card-color:var(--warn)">
+        <div class="stat-label">Low Fuel</div>
+        <div class="stat-value" id="low-fuel-count">—</div>
+        <div class="stat-sub">Below 30%</div>
+      </div>
+      <div class="stat-card" style="--card-color:var(--danger)">
+        <div class="stat-label">Adulteration</div>
+        <div class="stat-value" id="adult-count">—</div>
+        <div class="stat-sub">Alerts active</div>
+      </div>
+      <div class="stat-card" style="--card-color:var(--info)">
+        <div class="stat-label">Toll Critical</div>
+        <div class="stat-value" id="toll-count">—</div>
+        <div class="stat-sub">Below ₹100</div>
+      </div>
+      <div class="stat-card" style="--card-color:#ff6eb4)">
+        <div class="stat-label">ESP32 Online</div>
+        <div class="stat-value" id="esp32-online-count" style="color:#ff6eb4">—</div>
+        <div class="stat-sub">Sensors active</div>
+      </div>
+    </div>
+
+    <div class="section-header">
+      <div class="section-title"><span>//</span> ALL VEHICLES</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="text" class="search-input" placeholder="🔍 Search car / driver..." oninput="filterCars(this.value)" />
+        <select class="search-input" style="width:auto" onchange="filterByStatus(this.value)">
+          <option value="all">All Status</option>
+          <option value="running">Running</option>
+          <option value="parked">Parked</option>
+          <option value="alert">Alerts</option>
+        </select>
+      </div>
+    </div>
+    <div class="car-grid" id="car-grid">
+      <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text3);font-family:var(--font-mono);font-size:13px">
+        🔥 Firebase-ல் இருந்து vehicles load ஆகிறது...
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== DRIVER DASHBOARD ===== -->
+  <div class="panel" id="panel-driver">
+    <div class="section-header">
+      <div class="section-title"><span>//</span> DRIVER DASHBOARD</div>
+    </div>
+    <div class="driver-panel-grid">
+      <div class="driver-selector">
+        <div class="driver-selector-header">Select Driver</div>
+        <div class="driver-list" id="driver-list"></div>
+      </div>
+      <div class="driver-detail" id="driver-detail">
+        <div style="text-align:center;padding:40px;color:var(--text3)">
+          <div style="font-size:40px;margin-bottom:12px">👤</div>
+          <div>Select a driver to view their dashboard</div>
+          <div class="tamil-text" style="margin-top:8px">ஒரு driver-ஐ தேர்வு செய்யுங்கள்</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ESP32 LIVE PANEL ===== -->
+  <div class="panel" id="panel-esp32">
+    <div class="section-header">
+      <div class="section-title"><span>//</span> 📡 ESP32 LIVE SENSOR READINGS</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn" onclick="refreshESP32()">🔄 Refresh</button>
+        <button class="btn" onclick="switchTab('esp32-code')">💻 Arduino Code</button>
+      </div>
+    </div>
+
+    <div class="esp32-panel-grid">
+      <!-- Left: CRT Display -->
+      <div>
+        <!-- CRT Screen -->
+        <div class="crt-screen" id="crt-main">
+          <div class="crt-content">
+            <div class="crt-header">CABFLEET PRO // ESP32 SENSOR MODULE</div>
+            <div class="crt-title" id="crt-device-title">SELECT DEVICE ▌</div>
+            <hr class="crt-divider">
+
+            <div class="crt-readings" id="crt-readings">
+              <!-- Fuel Level -->
+              <div class="crt-reading-card" id="crt-card-fuel">
+                <div class="crt-label">⛽ FUEL LEVEL</div>
+                <div class="crt-value" id="crt-fuel-val">--.-</div>
+                <div class="crt-unit">PERCENT (%)</div>
+                <div class="crt-bar-wrap">
+                  <div class="crt-bar-track">
+                    <div class="crt-bar-fill" id="crt-fuel-bar" style="width:0%"></div>
+                  </div>
+                </div>
+                <div class="crt-status-row">
+                  <div class="crt-dot offline" id="crt-fuel-dot"></div>
+                  <div class="crt-status-txt" id="crt-fuel-status">WAITING FOR DATA</div>
+                </div>
+              </div>
+
+              <!-- Adulteration -->
+              <div class="crt-reading-card" id="crt-card-adul">
+                <div class="crt-label">🧪 ADULTERATION</div>
+                <div class="crt-value" id="crt-adul-val">--.-</div>
+                <div class="crt-unit">PERCENT (%)</div>
+                <div class="crt-bar-wrap">
+                  <div class="crt-bar-track">
+                    <div class="crt-bar-fill" id="crt-adul-bar" style="width:0%"></div>
+                  </div>
+                </div>
+                <div class="crt-status-row">
+                  <div class="crt-dot offline" id="crt-adul-dot"></div>
+                  <div class="crt-status-txt" id="crt-adul-status">WAITING FOR DATA</div>
+                </div>
+              </div>
+
+              <!-- GPS -->
+              <div class="crt-reading-card" id="crt-card-gps">
+                <div class="crt-label">📍 GPS LOCATION</div>
+                <div class="crt-value" style="font-size:16px;line-height:1.6" id="crt-gps-val">---.----<br>---.----</div>
+                <div class="crt-unit">LAT / LON</div>
+                <div class="crt-status-row" style="margin-top:14px">
+                  <div class="crt-dot offline" id="crt-gps-dot"></div>
+                  <div class="crt-status-txt" id="crt-gps-status">NO FIX</div>
+                </div>
+              </div>
+
+              <!-- Engine -->
+              <div class="crt-reading-card" id="crt-card-engine">
+                <div class="crt-label">🔧 ENGINE STATUS</div>
+                <div class="crt-value" style="font-size:26px" id="crt-engine-val">-----</div>
+                <div class="crt-unit">IGNITION STATE</div>
+                <div class="crt-status-row" style="margin-top:14px">
+                  <div class="crt-dot offline" id="crt-engine-dot"></div>
+                  <div class="crt-status-txt" id="crt-engine-status">WAITING</div>
+                </div>
+              </div>
+
+              <!-- FASTag -->
+              <div class="crt-reading-card" id="crt-card-toll">
+                <div class="crt-label">💳 FASTAG BALANCE</div>
+                <div class="crt-value" id="crt-toll-val">----</div>
+                <div class="crt-unit">RUPEES (₹)</div>
+                <div class="crt-bar-wrap">
+                  <div class="crt-bar-track">
+                    <div class="crt-bar-fill" id="crt-toll-bar" style="width:0%"></div>
+                  </div>
+                </div>
+                <div class="crt-status-row">
+                  <div class="crt-dot offline" id="crt-toll-dot"></div>
+                  <div class="crt-status-txt" id="crt-toll-status">WAITING FOR DATA</div>
+                </div>
+              </div>
+
+              <!-- Last Update -->
+              <div class="crt-reading-card">
+                <div class="crt-label">🕒 LAST UPDATE</div>
+                <div class="crt-value" style="font-size:18px;line-height:1.4" id="crt-timestamp">--:--:--</div>
+                <div class="crt-unit">SERVER TIMESTAMP</div>
+                <div class="crt-status-row" style="margin-top:14px">
+                  <div class="crt-dot online" id="crt-ts-dot"></div>
+                  <div class="crt-status-txt" id="crt-age-status">LIVE</div>
+                </div>
+              </div>
+
+              <!-- Signal -->
+              <div class="crt-reading-card">
+                <div class="crt-label">📶 SIGNAL QUALITY</div>
+                <div class="crt-value" id="crt-signal-val">---</div>
+                <div class="crt-unit">RSSI (dBm)</div>
+                <div class="crt-bar-wrap">
+                  <div class="crt-bar-track">
+                    <div class="crt-bar-fill" id="crt-signal-bar" style="width:0%"></div>
+                  </div>
+                </div>
+                <div class="crt-status-row">
+                  <div class="crt-dot offline" id="crt-signal-dot"></div>
+                  <div class="crt-status-txt" id="crt-signal-status">NO SIGNAL</div>
+                </div>
+              </div>
+            </div>
+
+            <hr class="crt-divider">
+
+            <!-- CRT Terminal Log -->
+            <div class="crt-terminal">
+              <div class="crt-terminal-header">
+                <span>▶ SERIAL MONITOR</span>
+                <span id="crt-log-count" style="color:var(--crt-amber)">0 events</span>
+              </div>
+              <div class="crt-log-list" id="crt-log"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Device List -->
+      <div>
+        <div class="esp32-device-list">
+          <div class="esp32-device-header">
+            <div class="section-title" style="margin:0"><span>//</span>DEVICES</div>
+            <span style="font-family:var(--font-mono);font-size:11px;color:var(--crt-amber)" id="device-count">0 online</span>
+          </div>
+          <div id="esp32-device-list-items">
+            <div style="padding:24px;text-align:center;color:var(--text3);font-family:var(--font-mono);font-size:12px">
+              🔥 Firebase-ல் இருந்து<br>ESP32 devices load ஆகிறது...
+            </div>
+          </div>
+        </div>
+
+        <!-- Firestore Structure Guide -->
+          <div class="info-card" style="margin-top:12px">
+          <div class="info-card-title" style="color:#ff6eb4">📋 Your Firestore Structure</div>
+          <div style="font-family:var(--font-mono);font-size:11px;color:var(--text2);line-height:1.8">
+            <span style="color:#a8d8ff">Vehicle/</span> {TN01AB1234}<br>
+            &nbsp;&nbsp;<span style="color:var(--crt-amber)">adulteration</span>: <span style="color:var(--safe)">10</span><br>
+            &nbsp;&nbsp;<span style="color:var(--crt-amber)">driver_name</span>: <span style="color:var(--safe)">"Rajesh"</span><br>
+            &nbsp;&nbsp;<span style="color:var(--crt-amber)">fuel</span>: <span style="color:var(--safe)">40</span><br>
+            &nbsp;&nbsp;<span style="color:var(--crt-amber)">lat</span>: <span style="color:var(--safe)">11.0168</span><br>
+            &nbsp;&nbsp;<span style="color:var(--crt-amber)">lon</span>: <span style="color:var(--safe)">76.9558</span><br>
+            &nbsp;&nbsp;<span style="color:var(--crt-amber)">status</span>: <span style="color:var(--safe)">"running"</span><br>
+            &nbsp;&nbsp;<span style="color:var(--crt-amber)">toll</span>: <span style="color:var(--safe)">140</span><br>
+            <br>
+            <span style="color:#a8d8ff">alerts/</span> {alert_01}<br>
+            &nbsp;&nbsp;<span style="color:var(--crt-amber)">message</span>, <span style="color:var(--crt-amber)">status</span>, <span style="color:var(--crt-amber)">type</span>, <span style="color:var(--crt-amber)">value</span><br>
+            <br>
+            <span style="color:#a8d8ff">fuel_logs/</span> {log_01}<br>
+            &nbsp;&nbsp;<span style="color:var(--crt-amber)">bunk_name</span>, <span style="color:var(--crt-amber)">fuel_amount</span>, <span style="color:var(--crt-amber)">adulteration</span>
+          </div>
+        </div>
+
+        <!-- ESP32 Setup Guide -->
+        <div class="info-card" style="margin-top:12px">
+          <div class="info-card-title" style="color:var(--crt-amber)">⚡ ESP32 Setup</div>
+          <div class="tamil-text" style="font-size:12px">
+            1️⃣ Arduino Code-ஐ copy பண்ணுங்கள்<br><br>
+            2️⃣ WiFi SSID & Password மாத்துங்கள்<br><br>
+            3️⃣ Firebase Project ID confirm பண்ணுங்கள்<br><br>
+            4️⃣ ESP32-ஐ flash பண்ணி power on பண்ணுங்கள்<br><br>
+            5️⃣ Firestore-ல் data automatically வரும் ✅
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Arduino Code Section -->
+    <div style="margin-top:20px" id="esp32-code-section">
+      <div class="section-header">
+        <div class="section-title"><span>//</span> ARDUINO CODE (ESP32 → Firebase)</div>
+        <button class="btn btn-accent" onclick="copyArduinoCode()">📋 Copy Code</button>
+      </div>
+      <div class="code-block">
+        <div class="code-header">
+          <span>📄 esp32_cabfleet.ino</span>
+          <button class="copy-btn" onclick="copyArduinoCode()">Copy</button>
+        </div>
+        <div class="code-body" id="arduino-code-display"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== FUEL PANEL ===== -->
+  <div class="panel" id="panel-fuel">
+    <div class="section-header">
+      <div class="section-title"><span>//</span> FUEL & ADULTERATION TRACKER</div>
+      <button class="btn btn-accent" onclick="addFuelLog()">+ Log Fuel Fill</button>
+    </div>
+    <div class="fuel-panel-grid">
+      <div>
+        <div class="section-title" style="margin-bottom:12px"><span>//</span> BUNK SAFETY RATINGS</div>
+        <div class="bunk-list" id="bunk-list"></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="info-card">
+          <div class="info-card-title">Recent Adulteration Events</div>
+          <div id="adul-log" style="display:flex;flex-direction:column;gap:8px"></div>
+        </div>
+        <div class="info-card" id="fuel-form" style="display:none">
+          <div class="info-card-title">Log Fuel Fill</div>
+          <select class="search-input" style="width:100%;margin-bottom:8px" id="log-car"><option>Select Car...</option></select>
+          <select class="search-input" style="width:100%;margin-bottom:8px" id="log-bunk"><option>Select Bunk...</option></select>
+          <input type="number" class="search-input" style="width:100%;margin-bottom:8px" placeholder="Litres filled" id="log-litres" />
+          <input type="number" class="search-input" style="width:100%;margin-bottom:8px" placeholder="Adulteration % (0-100)" id="log-adul" />
+          <button class="btn btn-accent" style="width:100%" onclick="submitFuelLog()">Submit Log</button>
+        </div>
+        <div class="info-card">
+          <div class="info-card-title" style="color:var(--safe)">Safe Bunk Tips</div>
+          <div class="tamil-text">
+            ✅ BPCL & Indian Oil bunks — adulteration rate குறைவு<br><br>
+            ⚠️ Private bunks — எப்போதும் receipt வாங்குங்கள்<br><br>
+            🔴 30% க்கும் மேல் adulteration — engine damage possible<br><br>
+            💡 Engine warning light வந்தால் உடனே report பண்ணுங்கள்
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TOLL TRACKER ===== -->
+  <div class="panel" id="panel-toll">
+    <div class="section-header">
+      <div class="section-title"><span>//</span> FASTAG TOLL TRACKER</div>
+      <button class="btn btn-accent" onclick="rechargeAll()">⚡ Recharge All Critical</button>
+    </div>
+    <div class="stats-row" style="margin-bottom:20px">
+      <div class="stat-card" style="--card-color:var(--danger)">
+        <div class="stat-label">Critical (≤₹100)</div>
+        <div class="stat-value" id="toll-crit-count">—</div>
+      </div>
+      <div class="stat-card" style="--card-color:var(--warn)">
+        <div class="stat-label">Low (≤₹300)</div>
+        <div class="stat-value" id="toll-warn-count">—</div>
+      </div>
+      <div class="stat-card" style="--card-color:var(--safe)">
+        <div class="stat-label">Healthy (>₹300)</div>
+        <div class="stat-value" id="toll-ok-count">—</div>
+      </div>
+    </div>
+    <div class="toll-grid" id="toll-grid"></div>
+  </div>
+
+  <!-- ===== CLOUD LOG ===== -->
+  <div class="panel" id="panel-log">
+    <div class="section-header">
+      <div class="section-title"><span>//</span> CLOUD EVENT LOG</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn" onclick="simulateEvent()">⚡ Simulate Event</button>
+        <button class="btn btn-danger btn-sm" onclick="clearLog()">Clear Log</button>
+      </div>
+    </div>
+    <div class="log-container">
+      <div class="log-toolbar">
+        <div style="font-size:12px;color:var(--text2)">
+          <span style="color:var(--safe)">●</span> Connected to Firebase
+          &nbsp;&nbsp;<span id="log-count">0</span> events
+        </div>
+        <input type="text" class="search-input" style="width:160px" placeholder="Filter logs..." oninput="filterLog(this.value)" />
+      </div>
+      <div class="log-list" id="log-list">
+        <div style="padding:30px;text-align:center;color:var(--text3);font-family:var(--font-mono);font-size:12px">
+          🔥 Firebase-ல் இருந்து logs load ஆகிறது...
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== HARDWARE SETUP PANEL ===== -->
+  <div class="panel" id="panel-hwsetup">
+    <div class="section-header">
+      <div class="section-title"><span>//</span> 🔌 HARDWARE CONNECT GUIDE</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn" onclick="runHwCheck()">🧪 Run Self-Test</button>
+        <button class="btn btn-accent" onclick="window.open('CabFleet_WiringGuide.html')">📋 Full Wiring Guide</button>
+      </div>
+    </div>
+
+    <!-- Status Banner -->
+    <div id="hw-status-banner" style="background:rgba(108,99,255,0.08);border:1px solid rgba(108,99,255,0.3);border-radius:12px;padding:16px 20px;display:flex;align-items:center;gap:16px;margin-bottom:24px">
+      <div style="font-size:32px">🔧</div>
+      <div>
+        <div style="font-size:15px;font-weight:700;color:#9c95ff" id="hw-status-text">Simulator Mode — Hardware இன்னும் connect ஆகவில்லை</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:4px" id="hw-status-sub">Tomorrow ESP32 flash பண்ணி connect பண்ணுங்கள் — dashboard automatically update ஆகும்</div>
+      </div>
+    </div>
+
+    <!-- 5 Car Config Cards -->
+    <div style="margin-bottom:20px">
+      <div class="section-title" style="margin-bottom:14px"><span>//</span> 5 CARS — ESP32 CONFIG</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px" id="hw-car-config">
+      </div>
+    </div>
+
+    <!-- Step by step -->
+    <div class="section-title" style="margin-bottom:14px"><span>//</span> TOMORROW — STEP BY STEP</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:24px">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px">
+        <div style="font-family:var(--font-mono);font-size:22px;color:var(--accent);font-weight:700;margin-bottom:8px">01</div>
+        <div style="font-weight:700;margin-bottom:6px">ESP32 Flash பண்ணு</div>
+        <div style="font-size:12px;color:var(--text2)">CabFleet_ESP32.ino-ல் WiFi password + car number மாத்தி Arduino IDE-ல் upload பண்ணு</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px">
+        <div style="font-family:var(--font-mono);font-size:22px;color:var(--accent);font-weight:700;margin-bottom:8px">02</div>
+        <div style="font-weight:700;margin-bottom:6px">Sensors Wire பண்ணு</div>
+        <div style="font-size:12px;color:var(--text2)">Fuel→GPIO34, Adul→GPIO35, GPS TX→GPIO16, Engine→GPIO26, RC522 SPI→GPIO 18/19/23/5/27</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px">
+        <div style="font-family:var(--font-mono);font-size:22px;color:var(--accent);font-weight:700;margin-bottom:8px">03</div>
+        <div style="font-weight:700;margin-bottom:6px">Power On பண்ணு</div>
+        <div style="font-size:12px;color:var(--text2)">Serial monitor திற — "Firebase ✓ Data sent" தெரிந்தால் ready! 10 sec-ல் dashboard-ல் live data வரும்</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px">
+        <div style="font-family:var(--font-mono);font-size:22px;color:var(--safe);font-weight:700;margin-bottom:8px">✓</div>
+        <div style="font-weight:700;margin-bottom:6px">Dashboard Live!</div>
+        <div style="font-size:12px;color:var(--text2)">Simulator automatically stop ஆகும். Real sensor readings — Fuel %, Adulteration %, GPS, FASTag balance live தெரியும்!</div>
+      </div>
+    </div>
+
+    <!-- Pin Reference Quick Card -->
+    <div class="section-title" style="margin-bottom:14px"><span>//</span> QUICK PIN REFERENCE</div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:24px">
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead>
+          <tr style="background:var(--surface2);border-bottom:1px solid var(--border)">
+            <th style="padding:10px 16px;text-align:left;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Sensor</th>
+            <th style="padding:10px 16px;text-align:left;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px">ESP32 GPIO</th>
+            <th style="padding:10px 16px;text-align:left;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Type</th>
+            <th style="padding:10px 16px;text-align:left;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px">Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--border)"><td style="padding:10px 16px">⛽ Fuel Level</td><td style="padding:10px 16px;font-family:var(--font-mono);color:var(--accent)">GPIO 34</td><td style="padding:10px 16px;color:var(--text2)">Analog In</td><td style="padding:10px 16px;font-size:12px;color:var(--text2)">+ 10kΩ to GND</td></tr>
+          <tr style="border-bottom:1px solid var(--border)"><td style="padding:10px 16px">🧪 Adulteration</td><td style="padding:10px 16px;font-family:var(--font-mono);color:var(--accent)">GPIO 35</td><td style="padding:10px 16px;color:var(--text2)">Analog In</td><td style="padding:10px 16px;font-size:12px;color:var(--text2)">NIR sensor out</td></tr>
+          <tr style="border-bottom:1px solid var(--border)"><td style="padding:10px 16px">📍 GPS (NEO-6M)</td><td style="padding:10px 16px;font-family:var(--font-mono);color:var(--accent)">GPIO 16 (RX2)</td><td style="padding:10px 16px;color:var(--text2)">UART Serial2</td><td style="padding:10px 16px;font-size:12px;color:var(--text2)">GPS TX → ESP RX</td></tr>
+          <tr style="border-bottom:1px solid var(--border)"><td style="padding:10px 16px">🔧 Engine Relay</td><td style="padding:10px 16px;font-family:var(--font-mono);color:var(--accent)">GPIO 26</td><td style="padding:10px 16px;color:var(--text2)">Digital In</td><td style="padding:10px 16px;font-size:12px;color:var(--text2)">PC817 optocoupler!</td></tr>
+          <tr style="border-bottom:1px solid var(--border)"><td style="padding:10px 16px">💳 RC522 SCK</td><td style="padding:10px 16px;font-family:var(--font-mono);color:var(--accent)">GPIO 18</td><td style="padding:10px 16px;color:var(--text2)">SPI</td><td style="padding:10px 16px;font-size:12px;color:var(--text2)">3.3V only!</td></tr>
+          <tr style="border-bottom:1px solid var(--border)"><td style="padding:10px 16px">💳 RC522 MOSI</td><td style="padding:10px 16px;font-family:var(--font-mono);color:var(--accent)">GPIO 23</td><td style="padding:10px 16px;color:var(--text2)">SPI</td><td style="padding:10px 16px;font-size:12px;color:var(--text2)">3.3V only!</td></tr>
+          <tr style="border-bottom:1px solid var(--border)"><td style="padding:10px 16px">💳 RC522 MISO</td><td style="padding:10px 16px;font-family:var(--font-mono);color:var(--accent)">GPIO 19</td><td style="padding:10px 16px;color:var(--text2)">SPI</td><td style="padding:10px 16px;font-size:12px;color:var(--text2)">3.3V only!</td></tr>
+          <tr style="border-bottom:1px solid var(--border)"><td style="padding:10px 16px">💳 RC522 SS/CS</td><td style="padding:10px 16px;font-family:var(--font-mono);color:var(--accent)">GPIO 5</td><td style="padding:10px 16px;color:var(--text2)">SPI CS</td><td style="padding:10px 16px;font-size:12px;color:var(--text2)">3.3V only!</td></tr>
+          <tr><td style="padding:10px 16px">💳 RC522 RST</td><td style="padding:10px 16px;font-family:var(--font-mono);color:var(--accent)">GPIO 27</td><td style="padding:10px 16px;color:var(--text2)">Digital</td><td style="padding:10px 16px;font-size:12px;color:var(--text2)">3.3V only!</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Self-Test Results -->
+    <div id="hw-test-results" style="display:none">
+      <div class="section-title" style="margin-bottom:14px"><span>//</span> SELF-TEST RESULTS</div>
+      <div id="hw-test-output" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;font-family:var(--font-mono);font-size:12px;line-height:1.8"></div>
+    </div>
+
+  </div>
+
+  <!-- ===== FIREBASE ADD CARS GUIDE PANEL ===== -->
+  <div class="panel" id="panel-firebaseguide">
+    <div class="section-header">
+      <div class="section-title"><span>//</span> 🔥 FIREBASE-ல் CARS ADD பண்றது</div>
+      <div style="font-size:12px;color:var(--text2)">Project: fleetguard-hd &nbsp;|&nbsp; Collection: Vehicle</div>
+    </div>
+
+    <!-- 3 New Cars Overview -->
+    <div style="margin-bottom:24px">
+      <div class="section-title" style="margin-bottom:12px"><span>//</span> DASHBOARD-ல் 3 புதிய CARS</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px">
+        <div style="background:rgba(0,212,170,0.04);border:1px solid rgba(0,212,170,0.4);border-radius:10px;padding:14px">
+          <div style="font-family:var(--font-mono);font-size:12px;color:var(--accent);font-weight:700;margin-bottom:4px">TN58KL2345 <span style="background:rgba(0,212,170,0.2);color:var(--safe);border:1px solid rgba(0,212,170,0.4);padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;margin-left:4px">NEW</span></div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:6px">&#x1F9D4; Anbu Chelvan</div>
+          <div style="font-size:11px;color:var(--text2);line-height:1.8">&#x26FD; Fuel: 76% &nbsp;|&nbsp; &#x1F525; Running<br>&#x1F4B3; FASTag: &#x20B9;530 &#x2705;<br>&#x1F9EA; Adulteration: 3% &#x2705;<br>&#x1F4CD; Madurai&rarr;Dindigul NH-44</div>
+        </div>
+        <div style="background:rgba(0,212,170,0.04);border:1px solid rgba(0,212,170,0.4);border-radius:10px;padding:14px">
+          <div style="font-family:var(--font-mono);font-size:12px;color:var(--accent);font-weight:700;margin-bottom:4px">TN58MN6789 <span style="background:rgba(0,212,170,0.2);color:var(--safe);border:1px solid rgba(0,212,170,0.4);padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;margin-left:4px">NEW</span></div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:6px">&#x1F466; Ravi Shankar</div>
+          <div style="font-size:11px;color:var(--text2);line-height:1.8">&#x26FD; Fuel: 33% &#x26A0;&#xFE0F; &nbsp;|&nbsp; &#x1F525; Running<br>&#x1F4B3; FASTag: &#x20B9;145 &#x26A0;&#xFE0F;<br>&#x1F9EA; Adulteration: 18% &#x26A0;&#xFE0F;<br>&#x1F4CD; Madurai&rarr;Ramnad NH-85</div>
+        </div>
+        <div style="background:rgba(0,212,170,0.04);border:1px solid rgba(0,212,170,0.4);border-radius:10px;padding:14px">
+          <div style="font-family:var(--font-mono);font-size:12px;color:var(--accent);font-weight:700;margin-bottom:4px">TN58OP3456 <span style="background:rgba(0,212,170,0.2);color:var(--safe);border:1px solid rgba(0,212,170,0.4);padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;margin-left:4px">NEW</span></div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:6px">&#x1F468; Senthil Kumar</div>
+          <div style="font-size:11px;color:var(--text2);line-height:1.8">&#x26FD; Fuel: 91% &#x2705; &nbsp;|&nbsp; &#x1F535; Parked<br>&#x1F4B3; FASTag: &#x20B9;70 &#x1F6A8;<br>&#x1F9EA; Adulteration: 2% &#x2705;<br>&#x1F4CD; Bypass Road, Madurai</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Steps -->
+    <div class="section-title" style="margin-bottom:16px"><span>//</span> FIREBASE CONSOLE — STEP BY STEP</div>
+    <div style="display:flex;flex-direction:column;gap:0">
+
+      <div style="display:flex;gap:0">
+        <div style="display:flex;flex-direction:column;align-items:center;width:52px;flex-shrink:0">
+          <div style="width:40px;height:40px;background:var(--accent);color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:16px;font-weight:700">1</div>
+          <div style="flex:1;width:2px;background:var(--border);margin:4px 0;min-height:40px"></div>
+        </div>
+        <div style="flex:1;padding:0 0 20px 16px">
+          <div style="font-size:16px;font-weight:700;margin-bottom:6px">Firebase Console திற</div>
+          <div style="font-size:13px;color:var(--text2);margin-bottom:8px;line-height:1.6">Browser-ல் <strong style="color:var(--accent)">console.firebase.google.com</strong> &rarr; fleetguard-hd &rarr; Firestore Database click பண்ணு</div>
+          <div style="background:rgba(0,212,170,0.06);border:1px solid rgba(0,212,170,0.2);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--text2)">
+            &#x1F517; <a href="https://console.firebase.google.com/project/fleetguard-hd/firestore" target="_blank" style="color:var(--accent)">console.firebase.google.com/project/fleetguard-hd/firestore</a>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:0">
+        <div style="display:flex;flex-direction:column;align-items:center;width:52px;flex-shrink:0">
+          <div style="width:40px;height:40px;background:var(--accent);color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:16px;font-weight:700">2</div>
+          <div style="flex:1;width:2px;background:var(--border);margin:4px 0;min-height:40px"></div>
+        </div>
+        <div style="flex:1;padding:0 0 20px 16px">
+          <div style="font-size:16px;font-weight:700;margin-bottom:6px">Vehicle Collection &rarr; + Add document</div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.6">"Vehicle" collection click &rarr; <strong style="color:var(--safe)">"+ Add document"</strong> button press பண்ணு</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:0">
+        <div style="display:flex;flex-direction:column;align-items:center;width:52px;flex-shrink:0">
+          <div style="width:40px;height:40px;background:var(--accent);color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:16px;font-weight:700">3</div>
+          <div style="flex:1;width:2px;background:var(--border);margin:4px 0;min-height:40px"></div>
+        </div>
+        <div style="flex:1;padding:0 0 20px 16px">
+          <div style="font-size:16px;font-weight:700;margin-bottom:6px">Document ID = Car Number (Manual!)</div>
+          <div style="font-size:13px;color:var(--text2);margin-bottom:8px;line-height:1.6"><strong style="color:var(--danger)">Auto-ID வேண்டாம்!</strong> Car number manually type பண்ணு:</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="font-family:var(--font-mono);font-size:14px;color:var(--accent);background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.3);border-radius:4px;padding:6px 12px">TN58KL2345</div>
+            <div style="font-family:var(--font-mono);font-size:14px;color:var(--accent);background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.3);border-radius:4px;padding:6px 12px">TN58MN6789</div>
+            <div style="font-family:var(--font-mono);font-size:14px;color:var(--accent);background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.3);border-radius:4px;padding:6px 12px">TN58OP3456</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:0">
+        <div style="display:flex;flex-direction:column;align-items:center;width:52px;flex-shrink:0">
+          <div style="width:40px;height:40px;background:var(--accent);color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:16px;font-weight:700">4</div>
+          <div style="flex:1;width:2px;background:var(--border);margin:4px 0;min-height:40px"></div>
+        </div>
+        <div style="flex:1;padding:0 0 20px 16px">
+          <div style="font-size:16px;font-weight:700;margin-bottom:6px">Fields Add பண்ணு</div>
+          <div style="font-size:13px;color:var(--text2);margin-bottom:10px">ஒவ்வொரு car-க்கும் இந்த fields add பண்ணணும்:</div>
+
+          <div style="background:#0d1117;border:1px solid #21262d;border-radius:10px;overflow:hidden;margin-bottom:10px">
+            <div style="background:#161b22;padding:10px 14px;border-bottom:1px solid #21262d;display:flex;align-items:center;justify-content:space-between;font-family:var(--font-mono);font-size:11px;color:#8b949e">
+              <span>Car 6: TN58KL2345 — Anbu Chelvan</span>
+              <button onclick="copyFbFields(1)" style="padding:4px 10px;background:rgba(255,255,255,0.06);border:1px solid #30363d;border-radius:5px;color:#8b949e;font-family:var(--font-mono);font-size:10px;cursor:pointer">Copy</button>
+            </div>
+            <div style="padding:14px;font-family:var(--font-mono);font-size:12px;line-height:1.8">
+              <span style="color:#b3d4ff">driver_name</span> &rarr; string &rarr; <span style="color:#ce9178">"Anbu Chelvan"</span><br>
+              <span style="color:#b3d4ff">fuel</span> &rarr; number &rarr; <span style="color:#b5cea8">76</span><br>
+              <span style="color:#b3d4ff">adulteration</span> &rarr; number &rarr; <span style="color:#b5cea8">3</span><br>
+              <span style="color:#b3d4ff">toll</span> &rarr; number &rarr; <span style="color:#b5cea8">530</span><br>
+              <span style="color:#b3d4ff">status</span> &rarr; string &rarr; <span style="color:#ce9178">"running"</span><br>
+              <span style="color:#b3d4ff">lat</span> &rarr; number &rarr; <span style="color:#b5cea8">9.9350</span><br>
+              <span style="color:#b3d4ff">lon</span> &rarr; number &rarr; <span style="color:#b5cea8">78.1400</span><br>
+              <span style="color:#b3d4ff">route</span> &rarr; string &rarr; <span style="color:#ce9178">"Madurai to Dindigul NH-44"</span><br>
+              <span style="color:#b3d4ff">rssi</span> &rarr; number &rarr; <span style="color:#b5cea8">-58</span>
+            </div>
+          </div>
+
+          <div style="background:#0d1117;border:1px solid #21262d;border-radius:10px;overflow:hidden;margin-bottom:10px">
+            <div style="background:#161b22;padding:10px 14px;border-bottom:1px solid #21262d;display:flex;align-items:center;justify-content:space-between;font-family:var(--font-mono);font-size:11px;color:#8b949e">
+              <span>Car 7: TN58MN6789 — Ravi Shankar</span>
+              <button onclick="copyFbFields(2)" style="padding:4px 10px;background:rgba(255,255,255,0.06);border:1px solid #30363d;border-radius:5px;color:#8b949e;font-family:var(--font-mono);font-size:10px;cursor:pointer">Copy</button>
+            </div>
+            <div style="padding:14px;font-family:var(--font-mono);font-size:12px;line-height:1.8">
+              <span style="color:#b3d4ff">driver_name</span> &rarr; string &rarr; <span style="color:#ce9178">"Ravi Shankar"</span><br>
+              <span style="color:#b3d4ff">fuel</span> &rarr; number &rarr; <span style="color:#b5cea8">33</span><br>
+              <span style="color:#b3d4ff">adulteration</span> &rarr; number &rarr; <span style="color:#b5cea8">18</span><br>
+              <span style="color:#b3d4ff">toll</span> &rarr; number &rarr; <span style="color:#b5cea8">145</span><br>
+              <span style="color:#b3d4ff">status</span> &rarr; string &rarr; <span style="color:#ce9178">"running"</span><br>
+              <span style="color:#b3d4ff">lat</span> &rarr; number &rarr; <span style="color:#b5cea8">9.9150</span><br>
+              <span style="color:#b3d4ff">lon</span> &rarr; number &rarr; <span style="color:#b5cea8">78.1080</span><br>
+              <span style="color:#b3d4ff">route</span> &rarr; string &rarr; <span style="color:#ce9178">"Madurai to Ramnad NH-85"</span><br>
+              <span style="color:#b3d4ff">rssi</span> &rarr; number &rarr; <span style="color:#b5cea8">-74</span>
+            </div>
+          </div>
+
+          <div style="background:#0d1117;border:1px solid #21262d;border-radius:10px;overflow:hidden">
+            <div style="background:#161b22;padding:10px 14px;border-bottom:1px solid #21262d;display:flex;align-items:center;justify-content:space-between;font-family:var(--font-mono);font-size:11px;color:#8b949e">
+              <span>Car 8: TN58OP3456 — Senthil Kumar</span>
+              <button onclick="copyFbFields(3)" style="padding:4px 10px;background:rgba(255,255,255,0.06);border:1px solid #30363d;border-radius:5px;color:#8b949e;font-family:var(--font-mono);font-size:10px;cursor:pointer">Copy</button>
+            </div>
+            <div style="padding:14px;font-family:var(--font-mono);font-size:12px;line-height:1.8">
+              <span style="color:#b3d4ff">driver_name</span> &rarr; string &rarr; <span style="color:#ce9178">"Senthil Kumar"</span><br>
+              <span style="color:#b3d4ff">fuel</span> &rarr; number &rarr; <span style="color:#b5cea8">91</span><br>
+              <span style="color:#b3d4ff">adulteration</span> &rarr; number &rarr; <span style="color:#b5cea8">2</span><br>
+              <span style="color:#b3d4ff">toll</span> &rarr; number &rarr; <span style="color:#b5cea8">70</span><br>
+              <span style="color:#b3d4ff">status</span> &rarr; string &rarr; <span style="color:#ce9178">"parked"</span><br>
+              <span style="color:#b3d4ff">lat</span> &rarr; number &rarr; <span style="color:#b5cea8">9.9210</span><br>
+              <span style="color:#b3d4ff">lon</span> &rarr; number &rarr; <span style="color:#b5cea8">78.1160</span><br>
+              <span style="color:#b3d4ff">route</span> &rarr; string &rarr; <span style="color:#ce9178">"Bypass Road Madurai"</span><br>
+              <span style="color:#b3d4ff">rssi</span> &rarr; number &rarr; <span style="color:#b5cea8">-61</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:0">
+        <div style="display:flex;flex-direction:column;align-items:center;width:52px;flex-shrink:0">
+          <div style="width:40px;height:40px;background:var(--safe);color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:18px;font-weight:700">&#x2713;</div>
+        </div>
+        <div style="flex:1;padding:0 0 24px 16px">
+          <div style="font-size:16px;font-weight:700;margin-bottom:6px;color:var(--safe)">Save பண்ணு — Dashboard-ல் Instantly தெரியும்!</div>
+          <div style="font-size:13px;color:var(--text2);margin-bottom:10px;line-height:1.6">Save press பண்ணினதும் dashboard <strong style="color:var(--safe)">real-time ஆக auto-update ஆகும்.</strong> Refresh தேவையில்லை.</div>
+          <div style="background:rgba(108,99,255,0.08);border:1px solid rgba(108,99,255,0.25);border-radius:8px;padding:12px 16px;font-size:13px;color:var(--text2)">
+            &#x1F4A1; <strong style="color:#9c95ff">Important:</strong> Document ID = Car number — same ஆக வை.<br>
+            ESP32 code-ல்: <code style="color:var(--accent);background:rgba(245,166,35,0.1);padding:1px 6px;border-radius:3px">VEHICLE_ID = "TN58KL2345"</code>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /steps -->
+
+    <script>
+    function copyFbFields(n) {
+      const data = {
+        1: 'driver_name: "Anbu Chelvan"\nfuel: 76\nadulteration: 3\ntoll: 530\nstatus: "running"\nlat: 9.9350\nlon: 78.1400\nroute: "Madurai to Dindigul NH-44"\nrssi: -58',
+        2: 'driver_name: "Ravi Shankar"\nfuel: 33\nadulteration: 18\ntoll: 145\nstatus: "running"\nlat: 9.9150\nlon: 78.1080\nroute: "Madurai to Ramnad NH-85"\nrssi: -74',
+        3: 'driver_name: "Senthil Kumar"\nfuel: 91\nadulteration: 2\ntoll: 70\nstatus: "parked"\nlat: 9.9210\nlon: 78.1160\nroute: "Bypass Road Madurai"\nrssi: -61'
+      };
+      navigator.clipboard.writeText(data[n]).then(()=>alert('Copied! Firebase Console-ல் paste பண்ணுங்கள் ✅'));
+    }
+    </script>
+
+  </div>
+
+
+<!-- ==================== FIREBASE + APP SCRIPT ==================== -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, onSnapshot, doc, setDoc, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getAuth, signInWithPopup, signInWithEmailAndPassword, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+// ====== FIREBASE CONFIG ======
+const firebaseConfig = {
+  apiKey: "AIzaSyCOIQit7Tu4ie3u9kKgrMOyJhH7op-j-jg",
+  authDomain: "fleetguard-hd.firebaseapp.com",
+  projectId: "fleetguard-hd",
+  storageBucket: "fleetguard-hd.firebasestorage.app",
+  messagingSenderId: "218299950114",
+  appId: "1:218299950114:web:f2a60936704fb696d5967b"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+const googleProvider = new GoogleAuthProvider();
+
+// ====== AUTH STATE ======
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    // Logged in — show dashboard
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display = 'block';
+    document.getElementById('user-name').textContent = user.displayName || user.email;
+    document.getElementById('user-avatar').textContent = (user.displayName || user.email || 'U')[0].toUpperCase();
+    startFirebaseListeners();
+  } else {
+    // Not logged in — show login
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('app-screen').style.display = 'none';
+  }
+});
+
+// ====== GOOGLE LOGIN ======
+window.loginWithGoogle = function() {
+  const btn = document.getElementById('google-btn');
+  btn.textContent = '⏳ Signing in...';
+  btn.disabled = true;
+  signInWithPopup(auth, googleProvider)
+    .then(() => {})
+    .catch((err) => {
+      btn.textContent = '🔵 Sign in with Google';
+      btn.disabled = false;
+      document.getElementById('login-error').textContent = '❌ Google login failed: ' + err.message;
+    });
+};
+
+// ====== EMAIL/PASSWORD LOGIN ======
+window.loginWithEmail = function() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  const btn   = document.getElementById('email-btn');
+  if (!email || !pass) {
+    document.getElementById('login-error').textContent = '⚠ Email & Password உள்ளிடுங்கள்';
+    return;
+  }
+  btn.textContent = '⏳ Signing in...';
+  btn.disabled = true;
+  signInWithEmailAndPassword(auth, email, pass)
+    .then(() => {})
+    .catch((err) => {
+      btn.textContent = '🔑 Login';
+      btn.disabled = false;
+      document.getElementById('login-error').textContent =
+        err.code === 'auth/invalid-credential' ? '❌ Email / Password தவறு!' :
+        err.code === 'auth/user-not-found'     ? '❌ User இல்லை!' :
+        err.code === 'auth/wrong-password'     ? '❌ Password தவறு!' :
+        '❌ ' + err.message;
+    });
+};
+
+// ====== LOGOUT ======
+window.doLogout = function() {
+  signOut(auth);
+};
+
+// ====== START FIREBASE LISTENERS (called after login) ======
+function startFirebaseListeners() {
+window.DRIVERS = [];
+window.selectedDriver = null;
+window.selectedDevice = null;
+window.carFilter = '';
+window.statusFilter = 'all';
+window.logs = [];
+window.crtLogs = [];
+
+// ====== FIREBASE STATUS ======
+function setFbStatus(state, text) {
+  const el = document.getElementById('fb-status');
+  el.className = 'fb-status ' + state;
+  el.textContent = text;
+}
+
+// ====== REAL-TIME LISTENER — drivers collection ======
+setFbStatus('connecting', '🔥 Connecting...');
+
+onSnapshot(collection(db, "Vehicle"), (snapshot) => {
+  if (snapshot.empty) {
+    setFbStatus('error', '⚠ No data in Firestore');
+    addLog('info', 'Firebase connected but "Vehicle" collection is empty. Add data from ESP32 or manually.');
+    document.getElementById('car-grid').innerHTML = `
+      <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text3);font-family:var(--font-mono);font-size:13px">
+        📭 Firebase "Vehicle" collection-ல் data இல்லை.<br><br>
+        ESP32 code flash பண்ணி turn on பண்ணுங்கள் — data automatically வரும்!
+      </div>`;
+    return;
+  }
+
+  setFbStatus('connected', '🔥 Firebase Live');
+  // Stop simulator when real hardware data arrives
+  if(typeof stopSimulator === 'function') stopSimulator();
+  window.DRIVERS = [];
+
+  snapshot.forEach((docSnap) => {
+    const d = { id: docSnap.id, ...docSnap.data() };
+    // Map Firestore field names → app field names
+    // Your Firestore uses: adulteration, driver_name, fuel, lat, lon, status, toll
+    d.fuel  = parseFloat(d.fuel        ?? 50);
+    d.adul  = parseFloat(d.adulteration ?? d.adul ?? 0);
+    d.toll  = parseFloat(d.toll        ?? 300);
+    d.lat   = parseFloat(d.lat         ?? 9.9252);
+    d.lon   = parseFloat(d.lon         ?? 78.1198);
+    d.rssi  = parseInt(d.rssi          ?? -70);
+    d.status  = d.status               ?? 'parked';
+    d.name    = d.driver_name ?? d.name ?? d.id;
+    d.car     = d.id;   // doc ID is the car number (e.g. TN01AB1234)
+    d.emoji   = d.emoji                ?? '👨';
+    d.route   = d.route                ?? 'Madurai';
+    window.DRIVERS.push(d);
+  });
+
+  // Log update
+  addLog('info', `Firebase: ${window.DRIVERS.length} vehicles synced. Real-time listener active.`);
+
+  // Refresh all renders
+  renderCars();
+  renderDriverList();
+  renderBunks();
+  renderAdulLog();
+  renderToll();
+  updateStats();
+  refreshESP32DeviceList();
+
+}, (error) => {
+  setFbStatus('error', '❌ Firebase Error');
+  addLog('alert', 'Firebase connection error: ' + error.message);
+  console.error('Firebase error:', error);
+  // Load demo data as fallback
+  loadDemoData();
+});
+
+// ====== DEMO FALLBACK DATA — 5 Cars ======
+// இந்த data tomorrow hardware connect ஆனதும் Firebase data-ஆல் replace ஆகும்
+function loadDemoData() {
+  addLog('info', '🔧 Demo/Simulator mode — Firebase இல்லாமல் hardware test பண்ணலாம்.');
+  window.DRIVERS = [
+    {id:'TN58AB1234',name:'Rajesh Kumar',   car:'TN58AB1234',emoji:'👨',fuel:68,  toll:420,adul:4,  status:'running',route:'Madurai→Chennai NH-44',   lat:9.9252, lon:78.1198,rssi:-62,gps_fix:true},
+    {id:'TN58CD5678',name:'Murugan Selvam', car:'TN58CD5678',emoji:'👨',fuel:22,  toll:85, adul:31, status:'running',route:'Madurai→Coimbatore NH-83',lat:9.9300, lon:78.1250,rssi:-70,gps_fix:true},
+    {id:'TN58EF9012',name:'Karthik Raja',   car:'TN58EF9012',emoji:'🧔',fuel:85,  toll:310,adul:6,  status:'running',route:'Madurai→Trichy NH-38',    lat:9.9180, lon:78.1100,rssi:-55,gps_fix:true},
+    {id:'TN58GH3456',name:'Vijay Mohan',    car:'TN58GH3456',emoji:'👦',fuel:41,  toll:55, adul:8,  status:'parked', route:'Parked — Madurai Central',lat:9.9280, lon:78.1320,rssi:-78,gps_fix:false},
+    {id:'TN58IJ7890',name:'Suresh Babu',    car:'TN58IJ7890',emoji:'👨',fuel:14,  toll:190,adul:26, status:'running',route:'Madurai→Nagercoil NH-7',   lat:9.9100, lon:78.1050,rssi:-68,gps_fix:true},
+    {id:'TN58KL2345',name:'Anbu Chelvan',   car:'TN58KL2345',emoji:'🧔',fuel:76,  toll:530,adul:3,  status:'running',route:'Madurai→Dindigul NH-44',      lat:9.9350, lon:78.1400,rssi:-58,gps_fix:true},
+    {id:'TN58MN6789',name:'Ravi Shankar',   car:'TN58MN6789',emoji:'👦',fuel:33,  toll:145,adul:18, status:'running',route:'Madurai→Ramnad NH-85',        lat:9.9150, lon:78.1080,rssi:-74,gps_fix:true},
+    {id:'TN58OP3456',name:'Senthil Kumar',  car:'TN58OP3456',emoji:'👨',fuel:91,  toll:70, adul:2,  status:'parked', route:'Parked — Bypass Road Madurai', lat:9.9210, lon:78.1160,rssi:-61,gps_fix:false},
+  ];
+  renderCars(); renderDriverList(); renderBunks(); renderAdulLog(); renderToll(); updateStats(); refreshESP32DeviceList();
+  setFbStatus('error', '⚠ Simulator Mode');
+  startSimulator();
+}
+
+// ====== LIVE SENSOR SIMULATOR ======
+// Tomorrow hardware connect ஆனதும் இந்த simulator automatically stop ஆகும்
+// Firebase real data வரும்போது simulator override ஆகும்
+let simulatorTimer = null;
+let simTick = 0;
+
+function startSimulator() {
+  if(simulatorTimer) clearInterval(simulatorTimer);
+  addLog('esp32', '🤖 Live Sensor Simulator started — hardware போட்டால் auto-stop ஆகும்');
+  simulatorTimer = setInterval(() => {
+    simTick++;
+    const D = window.DRIVERS;
+    if(!D || !D.length) return;
+
+    D.forEach((d, i) => {
+      // Fuel slowly decreases when running
+      if(d.status === 'running') {
+        d.fuel = Math.max(0, d.fuel - (Math.random() * 0.15));
+      }
+      // Small realistic noise on adulteration
+      d.adul = Math.max(0, Math.min(50, d.adul + (Math.random()-0.5)*0.3));
+      // RSSI fluctuates
+      if(d.rssi) d.rssi = Math.min(-40, Math.max(-95, d.rssi + Math.round((Math.random()-0.5)*3)));
+      // GPS moves slightly when running
+      if(d.status === 'running' && d.gps_fix) {
+        d.lat += (Math.random()-0.5)*0.0002;
+        d.lon += (Math.random()-0.5)*0.0002;
+      }
+      // FASTag deducts occasionally when running (simulating toll)
+      if(d.status === 'running' && simTick % 80 === i*16) {
+        const deduct = [45,60,85,30][Math.floor(Math.random()*4)];
+        d.toll = Math.max(0, d.toll - deduct);
+        addLog('toll', `${d.car} — FASTag deducted ₹${deduct} (Toll Plaza). Balance: ₹${d.toll.toFixed(0)}`);
+      }
+      // Low fuel alert
+      if(d.fuel < 20 && simTick % 30 === 0) {
+        addLog('alert', `⛽ ${d.car} (${d.name}) — Fuel critically low! ${d.fuel.toFixed(1)}%`);
+      }
+      // Adulteration alert
+      if(d.adul > 20 && simTick % 40 === i*8) {
+        addLog('alert', `🧪 ${d.car} — Adulteration high! ${d.adul.toFixed(1)}%`);
+      }
+    });
+
+    // Re-render silently
+    renderCars();
+    updateStats();
+    renderToll();
+    renderAdulLog();
+
+    // Update CRT if device selected
+    if(window.selectedDevice !== null) updateCRTDisplay(window.selectedDevice);
+    if(window.selectedDriver !== null) showDriverDetail(window.selectedDriver);
+
+    // Log heartbeat every 10 ticks
+    if(simTick % 10 === 0) {
+      const online = D.filter(d=>d.rssi > -95).length;
+      addCrtLog(`[SIM] Tick ${simTick} — ${online}/${D.length} ESP32 online`, 'normal');
+    }
+  }, 2000); // Every 2 seconds — like real ESP32 10s interval fast preview
+  addLog('info', `Simulator: ${window.DRIVERS.length} cars × real-time sensor updates every 2s`);
+}
+
+function stopSimulator() {
+  if(simulatorTimer) { clearInterval(simulatorTimer); simulatorTimer = null; }
+  addLog('info', '⛔ Simulator stopped — Firebase live data active');
+}
+
+// Make db available globally for write operations
+window._db = db;
+window._setDoc = setDoc;
+window._addDoc = addDoc;
+window._doc = doc;
+window._serverTimestamp = serverTimestamp;
+window._collection = collection;
+
+// ====== REAL-TIME LISTENER — alerts collection ======
+onSnapshot(collection(db, "alerts"), (snapshot) => {
+  const alertList = [];
+  snapshot.forEach((docSnap) => {
+    alertList.push({ id: docSnap.id, ...docSnap.data() });
+  });
+  window.ALERTS = alertList;
+  renderFirebaseAlerts();
+});
+
+// ====== REAL-TIME LISTENER — fuel_logs collection ======
+onSnapshot(collection(db, "fuel_logs"), (snapshot) => {
+  const logList = [];
+  snapshot.forEach((docSnap) => {
+    logList.push({ id: docSnap.id, ...docSnap.data() });
+  });
+  window.FUEL_LOGS = logList;
+  renderFirebaseFuelLogs();
+});
+
+} // end startFirebaseListeners
+
+</script>
+
+<!-- ==================== APP LOGIC ==================== -->
+<script>
+// ====== BUNKS DATA ======
+const BUNKS = [
+  {name:'BPCL Bypass Bunk',loc:'NH-44, Madurai Bypass',safe:true,adul:4,rating:9.2,reports:156},
+  {name:'Indian Oil - Tallakulam',loc:'Tallakulam, Madurai',safe:true,adul:6,rating:8.8,reports:203},
+  {name:'HP Petrol - Anna Nagar',loc:'Anna Nagar, Madurai',safe:true,adul:9,rating:8.3,reports:89},
+  {name:'Shell - Sivaganga Road',loc:'Sivaganga Road, Madurai',safe:true,adul:11,rating:7.9,reports:67},
+  {name:'Speed Fuels (Private)',loc:'Goripalayam, Madurai',safe:false,adul:38,rating:3.2,reports:44},
+  {name:'Lucky Petrol Station',loc:'Simmakkal, Madurai',safe:false,adul:41,rating:2.8,reports:31},
+  {name:'Rainbow Fuel Center',loc:'KK Nagar, Madurai',caution:true,adul:19,rating:6.1,reports:58},
+  {name:'United Petroleum',loc:'Paravai, Madurai',caution:true,adul:22,rating:5.5,reports:42},
+];
+
+// ====== LOGS ======
+let logs = [];
+
+function addLog(type, msg) {
+  const now = new Date();
+  const t = now.toTimeString().slice(0,8);
+  logs.unshift({time:t, type, msg});
+  renderLog();
+}
+
+function renderLog(filter='') {
+  const el = document.getElementById('log-list');
+  const filtered = logs.filter(l =>
+    !filter || l.msg.toLowerCase().includes(filter.toLowerCase()) || l.type.includes(filter.toLowerCase())
+  );
+  if(filtered.length === 0){
+    el.innerHTML = `<div style="padding:30px;text-align:center;color:var(--text3);font-family:var(--font-mono);font-size:12px">No events match filter</div>`;
+    return;
+  }
+  el.innerHTML = filtered.slice(0,100).map(l=>`
+    <div class="log-entry">
+      <div class="log-time">${l.time}</div>
+      <div class="log-type ${l.type}">[${l.type.toUpperCase()}]</div>
+      <div class="log-msg">${l.msg}</div>
+    </div>
+  `).join('');
+  document.getElementById('log-count').textContent = logs.length;
+}
+
+function filterLog(val){ renderLog(val); }
+function clearLog() {
+  logs = [];
+  document.getElementById('log-list').innerHTML = `<div style="padding:30px;text-align:center;color:var(--text3);font-family:var(--font-mono);font-size:12px">Log cleared.</div>`;
+  document.getElementById('log-count').textContent = 0;
+}
+
+function simulateEvent() {
+  const DRIVERS = window.DRIVERS;
+  if(!DRIVERS.length) { addLog('info','No drivers loaded yet.'); return; }
+  const types = [
+    {type:'fuel', msg:()=>`${DRIVERS[Math.floor(Math.random()*DRIVERS.length)].car} – Fuel filled 35L at BPCL Bypass. Adulteration: ${Math.floor(Math.random()*15)}%`},
+    {type:'alert', msg:()=>`${DRIVERS[Math.floor(Math.random()*DRIVERS.length)].car} – ADULTERATION ALERT! Fuel quality below limit`},
+    {type:'toll', msg:()=>`${DRIVERS[Math.floor(Math.random()*DRIVERS.length)].car} – FASTag balance low: ₹${Math.floor(Math.random()*100)+20}`},
+    {type:'esp32', msg:()=>`${DRIVERS[Math.floor(Math.random()*DRIVERS.length)].car} – ESP32 heartbeat received. Fuel: ${Math.floor(Math.random()*100)}%`},
+    {type:'start', msg:()=>`${DRIVERS[Math.floor(Math.random()*DRIVERS.length)].car} – Engine started. GPS tracking active.`},
+  ];
+  const e = types[Math.floor(Math.random()*types.length)];
+  addLog(e.type, e.msg());
+}
+
+// ====== STATS UPDATE ======
+function updateStats() {
+  const D = window.DRIVERS;
+  document.getElementById('total').textContent = D.length;
+  document.getElementById('running-count').textContent = D.filter(d=>d.status==='running').length;
+  document.getElementById('low-fuel-count').textContent = D.filter(d=>d.fuel<30).length;
+  document.getElementById('adult-count').textContent = D.filter(d=>d.adul>20).length;
+  document.getElementById('toll-count').textContent = D.filter(d=>d.toll<100).length;
+  document.getElementById('esp32-online-count').textContent = D.filter(d=>d.rssi && d.rssi > -100).length;
+
+  const alerts = D.filter(d=>d.fuel<30||d.adul>20||d.toll<100);
+  if(alerts.length > 0) {
+    document.getElementById('alert-main-text').textContent = `${alerts.length} Cars need immediate attention`;
+    document.getElementById('alert-sub-text').textContent = alerts.slice(0,3).map(d=>`${d.car} – ${d.adul>20?'Adulteration':d.toll<100?'Toll Low':'Low Fuel'}`).join(' | ');
+  } else {
+    document.getElementById('alert-banner').style.background = 'rgba(0,212,170,0.06)';
+    document.getElementById('alert-banner').style.borderColor = 'rgba(0,212,170,0.2)';
+    document.getElementById('alert-main-text').textContent = '✅ All vehicles are in good condition';
+    document.getElementById('alert-sub-text').textContent = 'Firebase real-time sync active';
+  }
+}
+
+// ====== CAR GRID ======
+function getFuelClass(f){ return f<20?'danger':f<40?'warn':'safe'; }
+function getAdulClass(a){ return a>25?'high':a>15?'mid':'low'; }
+
+function renderCars() {
+  const grid = document.getElementById('car-grid');
+  let data = window.DRIVERS.filter(d => {
+    const matchSearch = !window.carFilter || d.name.toLowerCase().includes(window.carFilter) || d.car.toLowerCase().includes(window.carFilter);
+    const matchStatus = window.statusFilter === 'all' ? true :
+      window.statusFilter === 'alert' ? (d.fuel<30||d.adul>20||d.toll<100) :
+      d.status === window.statusFilter;
+    return matchSearch && matchStatus;
+  });
+
+  if(!data.length){
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text3);font-family:var(--font-mono);font-size:13px">No vehicles match filter</div>`;
+    return;
+  }
+
+  grid.innerHTML = data.map((d) => {
+    const fc = getFuelClass(d.fuel);
+    const hasAdul = d.adul > 20;
+    const hasToll = d.toll < 150;
+    const hasLow = d.fuel < 25;
+    const cardClass = (hasAdul||hasLow) ? 'danger' : hasToll ? 'warning' : d.status==='offline' ? 'offline' : '';
+    const dotClass = d.status==='offline' ? 'offline' : (hasAdul||hasLow) ? 'danger' : 'online';
+    const idx = window.DRIVERS.indexOf(d);
+
+    return `<div class="car-card ${cardClass}" onclick="selectDriver(${idx});switchTab('driver')">
+      <div class="car-header">
+        <div class="car-number">${d.car}</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div class="status-dot ${dotClass}"></div>
+          <button class="btn btn-sm" onclick="event.stopPropagation();openMap(${d.lat||9.9252},${d.lon||78.1198})" style="padding:2px 7px;font-size:10px">📍</button>
+        </div>
+      </div>
+      <div class="car-driver">${d.emoji} ${d.name}</div>
+      <div class="fuel-bar-wrap">
+        <div class="fuel-label"><span>⛽ Fuel</span><span>${d.fuel.toFixed(1)}%</span></div>
+        <div class="fuel-bar"><div class="fuel-fill ${fc}" style="width:${d.fuel}%"></div></div>
+      </div>
+      <div class="adul-meter">
+        <span style="font-size:11px;color:var(--text2);width:80px">🧪 Adul.</span>
+        <div class="adul-bar"><div class="adul-fill ${getAdulClass(d.adul)}" style="width:${Math.min(d.adul*2,100)}%"></div></div>
+        <div class="adul-pct ${getAdulClass(d.adul)}">${d.adul.toFixed(1)}%</div>
+      </div>
+      <div class="car-meta" style="margin-top:10px">
+        <span class="tag ${d.status==='running'?'running':'parked'}">${d.status==='running'?'🟢 Running':'🔵 Parked'}</span>
+        ${hasAdul?'<span class="tag adulterated">⚠ Adulterated</span>':''}
+        ${hasToll?'<span class="tag toll-low">💳 Toll Low</span>':''}
+        ${hasLow?'<span class="tag adulterated">⛽ Low Fuel</span>':''}
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:8px">📍 ${d.route||'—'}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:3px">💳 FASTag: ₹${d.toll}</div>
+      ${d.rssi?`<div style="font-size:10px;color:#ff6eb4;margin-top:3px">📡 ESP32: ${d.rssi}dBm</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function filterCars(val){ window.carFilter = val.toLowerCase(); renderCars(); }
+function filterByStatus(val){ window.statusFilter = val; renderCars(); }
+
+// ====== DRIVER DETAIL ======
+function renderDriverList() {
+  const el = document.getElementById('driver-list');
+  el.innerHTML = window.DRIVERS.map((d,i) => `
+    <div class="driver-item ${window.selectedDriver===i?'selected':''}" onclick="selectDriver(${i})">
+      <div class="driver-avatar">${d.emoji}</div>
+      <div>
+        <div class="driver-info-name">${d.name}</div>
+        <div class="driver-info-car">${d.car}</div>
+      </div>
+      <div class="status-dot ${d.status==='running'?'online':'offline'}" style="margin-left:auto"></div>
+    </div>
+  `).join('');
+}
+
+function selectDriver(i) {
+  window.selectedDriver = i;
+  renderDriverList();
+  showDriverDetail(i);
+}
+
+function showDriverDetail(i) {
+  const d = window.DRIVERS[i];
+  if(!d) return;
+  const el = document.getElementById('driver-detail');
+  const fc = getFuelClass(d.fuel);
+  const ac = getAdulClass(d.adul);
+  const tollStatus = d.toll<100?'danger':d.toll<300?'warn':'safe';
+  const fuelStatus = d.fuel<20?'danger':d.fuel<40?'warn':'safe';
+
+  el.innerHTML = `
+    <div class="driver-detail-header">
+      <div class="driver-big-avatar">${d.emoji}</div>
+      <div>
+        <div class="driver-detail-name">${d.name}</div>
+        <div class="driver-detail-meta">
+          <span class="tag ${d.status==='running'?'running':'parked'}">${d.status.toUpperCase()}</span>
+          <span class="tag" style="color:var(--text2)">${d.car}</span>
+          ${d.rssi?`<span class="tag" style="color:#ff6eb4;background:rgba(255,110,180,0.1);border:1px solid rgba(255,110,180,0.3)">📡 ${d.rssi}dBm</span>`:''}
+        </div>
+      </div>
+    </div>
+
+    <div style="background:rgba(108,99,255,0.08);border:1px solid rgba(108,99,255,0.2);border-radius:8px;padding:12px;margin-bottom:16px">
+      <div style="font-size:11px;color:var(--info);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">📍 Current Route</div>
+      <div style="font-size:14px;font-weight:600">${d.route||'—'}</div>
+      ${d.lat?`<div style="font-family:var(--font-mono);font-size:11px;color:var(--text3);margin-top:4px">GPS: ${d.lat.toFixed(4)}, ${d.lon.toFixed(4)} <button class="btn btn-sm" onclick="openMap(${d.lat},${d.lon})" style="margin-left:8px">📍 Open Map</button></div>`:''}
+    </div>
+
+    <div class="detail-grid">
+      <div class="detail-box">
+        <div class="detail-box-label">⛽ Fuel Level</div>
+        <div class="detail-box-value ${fuelStatus}">${d.fuel.toFixed(1)}%</div>
+        <div class="fuel-bar" style="margin-top:8px"><div class="fuel-fill ${fc}" style="width:${d.fuel}%"></div></div>
+        ${d.fuel<30?'<div style="font-size:11px;color:var(--danger);margin-top:4px">⚠ Fill within 30 min!</div>':''}
+      </div>
+      <div class="detail-box">
+        <div class="detail-box-label">💳 FASTag Balance</div>
+        <div class="detail-box-value ${tollStatus}">₹${d.toll}</div>
+        ${d.toll<100?'<div style="font-size:11px;color:var(--danger);margin-top:4px">⚠ Recharge immediately!</div>':''}
+      </div>
+      <div class="detail-box">
+        <div class="detail-box-label">🧪 Adulteration</div>
+        <div class="detail-box-value ${ac}">${d.adul.toFixed(1)}%</div>
+        <div class="adul-meter" style="margin-top:8px">
+          <div class="adul-bar"><div class="adul-fill ${ac}" style="width:${Math.min(d.adul*2,100)}%"></div></div>
+        </div>
+        ${d.adul>20?'<div style="font-size:11px;color:var(--danger);margin-top:4px">🚨 High adulteration!</div>':''}
+      </div>
+      <div class="detail-box">
+        <div class="detail-box-label">🔧 Engine Status</div>
+        <div class="detail-box-value ${d.status==='running'?'safe':'warn'}">${d.status.toUpperCase()}</div>
+      </div>
+    </div>
+
+    <button class="voice-btn" onclick="speakAlert(${i})" id="voice-btn-${i}">
+      🔊 Voice Alert கேள் (Tamil/English)
+    </button>
+
+    <div class="info-card">
+      <div class="info-card-title">Alert Message Preview</div>
+      <div class="tamil-text" id="alert-preview-${i}">${getAlertText(d)}</div>
+    </div>
+  `;
+}
+
+function getAlertText(d) {
+  let msgs = [];
+  if(d.fuel<30) msgs.push(`⛽ Fuel level ${d.fuel.toFixed(1)}% மட்டுமே உள்ளது. 30 நிமிடத்தில் fill பண்ணுங்கள்.`);
+  if(d.adul>20) msgs.push(`🚨 எச்சரிக்கை! உங்கள் tank-ல் ${d.adul.toFixed(1)}% adulteration உள்ளது.`);
+  if(d.toll<100) msgs.push(`💳 FASTag balance ₹${d.toll} மட்டுமே உள்ளது. Recharge பண்ணுங்கள்.`);
+  if(msgs.length===0) msgs.push(`✅ எல்லாம் சரியாக உள்ளது. Safe trip பண்ணுங்கள், ${d.name} sir!`);
+  return msgs.join('<br><br>');
+}
+
+function getAlertTextEnglish(d) {
+  let msgs = [];
+  if(d.fuel<30) msgs.push(`Fuel level is only ${d.fuel.toFixed(1)} percent. Please refuel within 30 minutes.`);
+  if(d.adul>20) msgs.push(`Warning! Your fuel tank has ${d.adul.toFixed(1)} percent adulteration.`);
+  if(d.toll<100) msgs.push(`FASTag balance is only ${d.toll} rupees. Please recharge immediately.`);
+  if(msgs.length===0) msgs.push(`All systems are good. Have a safe trip, ${d.name}!`);
+  return msgs.join(' ');
+}
+
+function speakAlert(i) {
+  const d = window.DRIVERS[i];
+  const btn = document.getElementById(`voice-btn-${i}`);
+  if('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(getAlertTextEnglish(d));
+    utt.lang = 'en-IN'; utt.rate = 0.9; utt.pitch = 1;
+    btn.textContent = '🔊 Speaking...';
+    btn.classList.add('speaking');
+    utt.onend = () => { btn.textContent='🔊 Voice Alert கேள் (Tamil/English)'; btn.classList.remove('speaking'); };
+    window.speechSynthesis.speak(utt);
+    addLog('start', `${d.car} – Voice alert triggered for ${d.name}`);
+  }
+}
+
+// ====== FUEL PANEL ======
+function renderBunks() {
+  document.getElementById('bunk-list').innerHTML = BUNKS.map(b => {
+    const cls = b.safe?'safe':b.caution?'caution':'unsafe';
+    const icon = b.safe?'✅':b.caution?'⚠️':'🚫';
+    return `<div class="bunk-card">
+      <div class="bunk-status-icon ${cls}">${icon}</div>
+      <div class="bunk-info">
+        <div class="bunk-name">${b.name}</div>
+        <div class="bunk-location">📍 ${b.loc}</div>
+        <div class="bunk-stats">
+          <div class="bunk-stat">Adulteration: <span style="color:${b.adul>25?'var(--danger)':b.adul>15?'var(--warn)':'var(--safe)'}">${b.adul}%</span></div>
+          <div class="bunk-stat">Reports: <span>${b.reports}</span></div>
+        </div>
+      </div>
+      <div class="bunk-rating ${cls}">${b.rating}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderAdulLog() {
+  const alerts = window.DRIVERS.filter(d=>d.adul>15).slice(0,6);
+  document.getElementById('adul-log').innerHTML = alerts.length ? alerts.map(d=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg);border-radius:6px;border:1px solid var(--border)">
+      <div style="font-size:12px;flex:1">
+        <div style="font-family:var(--font-mono);color:var(--accent);font-size:11px">${d.car}</div>
+        <div style="color:var(--text2);font-size:12px">${d.name}</div>
+      </div>
+      <div class="adul-pct ${getAdulClass(d.adul)}">${d.adul.toFixed(1)}%</div>
+      <span class="tag adulterated">⚠</span>
+    </div>
+  `).join('') : '<div style="color:var(--text3);font-size:12px;padding:8px">No adulteration alerts</div>';
+}
+
+function addFuelLog() {
+  const form = document.getElementById('fuel-form');
+  form.style.display = form.style.display==='none'?'block':'none';
+  document.getElementById('log-car').innerHTML = '<option>Select Car...</option>' + window.DRIVERS.map(d=>`<option>${d.car} – ${d.name}</option>`).join('');
+  document.getElementById('log-bunk').innerHTML = '<option>Select Bunk...</option>' + BUNKS.map(b=>`<option>${b.name}</option>`).join('');
+}
+
+function submitFuelLog() {
+  const car = document.getElementById('log-car').value;
+  const bunk = document.getElementById('log-bunk').value;
+  const litres = document.getElementById('log-litres').value;
+  const adul = document.getElementById('log-adul').value;
+  if(car==='Select Car...'||!litres){ alert('Please fill all fields.'); return; }
+  const carId = car.split('–')[0].trim();
+
+  // Save to Firebase fuel_logs collection
+  if(window._db && window._addDoc) {
+    window._addDoc(window._collection(window._db, "fuel_logs"), {
+      vehicle_id: carId,
+      bunk_name: bunk,
+      fuel_amount: parseFloat(litres),
+      adulteration: parseFloat(adul||0),
+      location: "madurai",
+      time: window._serverTimestamp()
+    }).then(() => {
+      addLog('fuel', `${carId} – Filled ${litres}L at ${bunk}. Adulteration: ${adul||0}%`);
+      document.getElementById('fuel-form').style.display='none';
+      alert('Fuel log Firebase-ல் saved! ✅');
+    }).catch(e => {
+      addLog('alert', 'Fuel log save error: ' + e.message);
+      alert('Error saving: ' + e.message);
+    });
+  } else {
+    addLog('fuel', `${carId} – Filled ${litres}L at ${bunk}. Adulteration: ${adul||0}%`);
+    document.getElementById('fuel-form').style.display='none';
+    alert('Fuel log saved locally! ✅');
+  }
+}
+
+// ====== RENDER FIREBASE ALERTS ======
+function renderFirebaseAlerts() {
+  const alerts = window.ALERTS || [];
+  const active = alerts.filter(a => a.status === 'active');
+  if(active.length > 0) {
+    document.getElementById('alert-main-text').textContent = `🚨 ${active.length} Active Alert${active.length>1?'s':''}`;
+    document.getElementById('alert-sub-text').textContent = active.slice(0,3).map(a =>
+      `${a.vehicle_id} — ${a.message || a.type}`
+    ).join(' | ');
+  }
+  // Also push to log
+  active.forEach(a => {
+    addLog('alert', `${a.vehicle_id}: ${a.message} (${a.type}, value: ${a.value})`);
+  });
+}
+
+// ====== RENDER FIREBASE FUEL LOGS ======
+function renderFirebaseFuelLogs() {
+  const logs = window.FUEL_LOGS || [];
+  const el = document.getElementById('adul-log');
+  if(!el) return;
+  if(!logs.length) {
+    el.innerHTML = '<div style="color:var(--text3);font-size:12px;padding:8px">No fuel logs yet</div>';
+    return;
+  }
+  // Sort newest first
+  const sorted = [...logs].sort((a,b) => {
+    const ta = a.time?.seconds || 0;
+    const tb = b.time?.seconds || 0;
+    return tb - ta;
+  });
+  el.innerHTML = sorted.slice(0,6).map(l => {
+    const ac = l.adulteration > 25 ? 'high' : l.adulteration > 15 ? 'mid' : 'low';
+    const timeStr = l.time?.seconds ? new Date(l.time.seconds*1000).toLocaleTimeString('en-IN') : '—';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg);border-radius:6px;border:1px solid var(--border);margin-bottom:4px">
+      <div style="font-size:12px;flex:1">
+        <div style="font-family:var(--font-mono);color:var(--accent);font-size:11px">${l.vehicle_id} — ${l.bunk_name||'—'}</div>
+        <div style="color:var(--text2);font-size:11px">${l.fuel_amount}L • ${timeStr} • ${l.location||''}</div>
+      </div>
+      <div class="adul-pct ${ac}">${l.adulteration}%</div>
+    </div>`;
+  }).join('');
+}
+
+// ====== TOLL PANEL ======
+function renderToll() {
+  const grid = document.getElementById('toll-grid');
+  let crit=0, warn=0, ok=0;
+  grid.innerHTML = window.DRIVERS.map(d => {
+    const cls = d.toll<100?'crit':d.toll<300?'warn':'ok';
+    const cardCls = d.toll<100?'critical':d.toll<300?'warning':'';
+    const pct = Math.min((d.toll/700)*100,100);
+    const fillColor = d.toll<100?'var(--danger)':d.toll<300?'var(--warn)':'var(--safe)';
+    if(d.toll<100) crit++; else if(d.toll<300) warn++; else ok++;
+    return `<div class="toll-card ${cardCls}">
+      <div class="toll-car-num">${d.car}</div>
+      <div class="toll-driver-name">${d.emoji} ${d.name}</div>
+      <div class="toll-balance ${cls}">₹${d.toll}</div>
+      <div class="toll-days">${d.toll<100?'⚠ Recharge IMMEDIATELY':d.toll<300?'📉 Recharge within 2 days':'✅ Balance OK'}</div>
+      <div class="toll-progress"><div class="toll-progress-fill" style="width:${pct}%;background:${fillColor}"></div></div>
+      ${d.toll<300?`<button class="btn btn-accent btn-sm" style="margin-top:10px;width:100%" onclick="rechargeCar('${d.car}')">⚡ Recharge Now</button>`:''}
+    </div>`;
+  }).join('');
+  document.getElementById('toll-crit-count').textContent = crit;
+  document.getElementById('toll-warn-count').textContent = warn;
+  document.getElementById('toll-ok-count').textContent = ok;
+}
+
+function rechargeCar(car) {
+  addLog('toll', `${car} – FASTag recharge ₹500 initiated.`);
+  alert(`${car} FASTag recharge of ₹500 initiated! ✅`);
+}
+
+function rechargeAll() {
+  const critCars = window.DRIVERS.filter(d=>d.toll<300);
+  critCars.forEach(d => addLog('toll', `${d.car} – Auto-recharge ₹500 initiated for ${d.name}`));
+  alert(`${critCars.length} cars-க்கு auto-recharge initiated!`);
+}
+
+// ====== MAP ======
+function openMap(lat, lon) {
+  window.open(`https://www.google.com/maps?q=${lat},${lon}`);
+}
+
+// ====== CRT / ESP32 PANEL ======
+let crtLogs = [];
+let crtLogCount = 0;
+
+function addCrtLog(msg, type='normal') {
+  const now = new Date();
+  const ts = now.toTimeString().slice(0,8);
+  crtLogs.unshift({ts, msg, type});
+  if(crtLogs.length > 50) crtLogs.pop();
+  renderCrtLog();
+}
+
+function renderCrtLog() {
+  const el = document.getElementById('crt-log');
+  el.innerHTML = crtLogs.slice(0,20).map(l=>`
+    <div class="crt-log-entry">
+      <span class="ts">[${l.ts}]</span>
+      <span class="${l.type==='warn'?'warn-msg':l.type==='danger'?'danger-msg':'msg'}">${l.msg}</span>
+    </div>
+  `).join('');
+  document.getElementById('crt-log-count').textContent = `${crtLogs.length} events`;
+}
+
+function refreshESP32DeviceList() {
+  const D = window.DRIVERS;
+  const el = document.getElementById('esp32-device-list-items');
+  const onlineCount = D.filter(d=>d.rssi && d.rssi > -100).length;
+  document.getElementById('device-count').textContent = `${onlineCount} online`;
+
+  if(!D.length) {
+    el.innerHTML = `<div style="padding:24px;text-align:center;color:var(--text3);font-family:var(--font-mono);font-size:12px">No ESP32 devices found in Firebase</div>`;
+    return;
+  }
+
+  el.innerHTML = D.map((d, i) => {
+    const online = d.rssi && d.rssi > -100;
+    const selected = window.selectedDevice === i;
+    return `<div class="esp32-device-item ${selected?'selected':''}" onclick="selectDevice(${i})">
+      <div class="device-icon">${online?'📡':'📴'}</div>
+      <div>
+        <div class="device-name">${d.name}</div>
+        <div class="device-car">${d.car}</div>
+        <div class="device-last" style="color:${online?'var(--crt-amber)':'var(--text3)'}">
+          ${online?`📶 ${d.rssi}dBm`:'Offline'}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function selectDevice(i) {
+  window.selectedDevice = i;
+  refreshESP32DeviceList();
+  updateCRTDisplay(i);
+}
+
+function updateCRTDisplay(i) {
+  const d = window.DRIVERS[i];
+  if(!d) return;
+
+  // Title
+  document.getElementById('crt-device-title').textContent = `${d.car} // ${d.name} ▌`;
+
+  // Fuel
+  const fuelEl = document.getElementById('crt-fuel-val');
+  const fuelBar = document.getElementById('crt-fuel-bar');
+  const fuelDot = document.getElementById('crt-fuel-dot');
+  const fuelStatus = document.getElementById('crt-fuel-status');
+  fuelEl.textContent = d.fuel.toFixed(1);
+  fuelEl.className = 'crt-value' + (d.fuel<20?' crt-danger':d.fuel<40?' crt-warn':'');
+  fuelBar.style.width = d.fuel + '%';
+  fuelBar.className = 'crt-bar-fill' + (d.fuel<20?' crt-bar-danger':d.fuel<40?' crt-bar-warn':'');
+  fuelDot.className = 'crt-dot ' + (d.fuel<20?'danger':'online');
+  fuelStatus.textContent = d.fuel<20?'CRITICAL - REFUEL NOW':d.fuel<40?'WARNING - REFUEL SOON':'NORMAL';
+  document.getElementById('crt-card-fuel').className = 'crt-reading-card' + (d.fuel<20?' danger-active':d.fuel<40?' alert-active':'');
+
+  // Adulteration
+  const adulEl = document.getElementById('crt-adul-val');
+  const adulBar = document.getElementById('crt-adul-bar');
+  const adulDot = document.getElementById('crt-adul-dot');
+  adulEl.textContent = d.adul.toFixed(1);
+  adulEl.className = 'crt-value' + (d.adul>25?' crt-danger':d.adul>15?' crt-warn':'');
+  adulBar.style.width = Math.min(d.adul*2,100) + '%';
+  adulBar.className = 'crt-bar-fill' + (d.adul>25?' crt-bar-danger':d.adul>15?' crt-bar-warn':'');
+  adulDot.className = 'crt-dot ' + (d.adul>25?'danger':d.adul>15?'online':'online');
+  document.getElementById('crt-adul-status').textContent = d.adul>25?'HIGH - ADULTERATED FUEL':d.adul>15?'ELEVATED - MONITOR':'CLEAN';
+  document.getElementById('crt-card-adul').className = 'crt-reading-card' + (d.adul>25?' danger-active':d.adul>15?' alert-active':'');
+
+  // GPS
+  document.getElementById('crt-gps-val').innerHTML = `${(d.lat||0).toFixed(4)}<br>${(d.lon||0).toFixed(4)}`;
+  document.getElementById('crt-gps-dot').className = 'crt-dot ' + (d.lat?'online':'offline');
+  document.getElementById('crt-gps-status').textContent = d.lat?'GPS FIX ACQUIRED':'NO GPS FIX';
+
+  // Engine
+  const engineEl = document.getElementById('crt-engine-val');
+  engineEl.textContent = d.status === 'running' ? 'RUNNING' : 'STOPPED';
+  engineEl.className = 'crt-value' + (d.status==='running'?'':' crt-warn');
+  document.getElementById('crt-engine-dot').className = 'crt-dot ' + (d.status==='running'?'online':'offline');
+  document.getElementById('crt-engine-status').textContent = d.status==='running'?'IGNITION ON':'IGNITION OFF';
+
+  // Signal
+  const rssi = d.rssi || -999;
+  const sigPct = rssi > -100 ? Math.max(0, Math.min(100, (rssi + 100) * 2)) : 0;
+  document.getElementById('crt-signal-val').textContent = rssi > -999 ? rssi : '---';
+  document.getElementById('crt-signal-bar').style.width = sigPct + '%';
+  document.getElementById('crt-signal-dot').className = 'crt-dot ' + (rssi > -80?'online':rssi>-100?'online':'offline');
+  document.getElementById('crt-signal-status').textContent = rssi > -60?'EXCELLENT':rssi>-80?'GOOD':rssi>-100?'WEAK':'NO SIGNAL';
+
+  // FASTag
+  const tollEl = document.getElementById('crt-toll-val');
+  const tollBar = document.getElementById('crt-toll-bar');
+  const tollDot = document.getElementById('crt-toll-dot');
+  tollEl.textContent = d.toll;
+  tollEl.className = 'crt-value' + (d.toll<100?' crt-danger':d.toll<300?' crt-warn':'');
+  const tollPct = Math.min((d.toll/700)*100, 100);
+  tollBar.style.width = tollPct + '%';
+  tollBar.className = 'crt-bar-fill' + (d.toll<100?' crt-bar-danger':d.toll<300?' crt-bar-warn':'');
+  tollDot.className = 'crt-dot ' + (d.toll<100?'danger':'online');
+  document.getElementById('crt-toll-status').textContent = d.toll<100?'CRITICAL - RECHARGE NOW':d.toll<300?'LOW - RECHARGE SOON':'SUFFICIENT';
+  document.getElementById('crt-card-toll').className = 'crt-reading-card' + (d.toll<100?' danger-active':d.toll<300?' alert-active':'');
+  if(d.toll<100) addCrtLog(`ALERT: FASTag ₹${d.toll} — recharge immediately!`, 'danger');
+
+  // Timestamp
+  document.getElementById('crt-timestamp').textContent = new Date().toLocaleTimeString('en-IN');
+
+  // CRT Log
+  addCrtLog(`Device selected: ${d.car} — ${d.name}`);
+  if(d.fuel<30) addCrtLog(`ALERT: Fuel low ${d.fuel.toFixed(1)}%`, 'danger');
+  if(d.adul>20) addCrtLog(`ALERT: Adulteration ${d.adul.toFixed(1)}%`, 'danger');
+  if(d.toll<100) addCrtLog(`WARN: FASTag ₹${d.toll} — recharge needed`, 'warn');
+  addCrtLog(`GPS: ${(d.lat||0).toFixed(4)}, ${(d.lon||0).toFixed(4)}`);
+  addCrtLog(`Signal: ${rssi}dBm (${sigPct.toFixed(0)}%)`);
+}
+
+function refreshESP32() {
+  if(window.selectedDevice !== null) updateCRTDisplay(window.selectedDevice);
+  addCrtLog('Manual refresh triggered by operator');
+  addLog('info', 'ESP32 display manually refreshed');
+}
+
+// ====== ARDUINO CODE ======
+const ARDUINO_CODE = `// ================================================
+// CabFleet Pro — ESP32 Firebase Sender
+// Sensors: Fuel Level, Adulteration, GPS,
+//          Engine Status, FASTag Balance
+// Database: Firebase Firestore → "vehicles" collection
+// ================================================
+
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <ArduinoJson.h>
+
+// ---- WiFi Config ----
+const char* WIFI_SSID     = "shirely harshu";
+const char* WIFI_PASSWORD = "jesusmyeverything#090";
+
+// ---- Firebase Config ----
+const char* FIREBASE_PROJECT = "fleetguard-hd";
+const char* FIREBASE_API_KEY = "AIzaSyCOIQit7Tu4ie3u9kKgrMOyJhH7op-j-jg";
+
+// ---- Vehicle Identity ----
+const char* VEHICLE_ID    = "TN01AB1234";     // Firestore document ID
+const char* DRIVER_NAME   = "Rajesh Kumar";
+const char* CAR_NUMBER    = "TN01AB1234";
+const char* DRIVER_EMOJI  = "👨";
+
+// ---- Sensor Pins ----
+#define FUEL_SENSOR_PIN    34   // Analog — fuel level float sensor
+#define ADUL_SENSOR_PIN    35   // Analog — NIR adulteration sensor
+#define FASTAG_SENSOR_PIN  32   // Analog — FASTag RFID reader (optional)
+#define ENGINE_RELAY_PIN   26   // Digital — ignition relay
+// GPS: connect to Serial2 (pins 16 RX, 17 TX)
+
+// ---- Timing ----
+#define SEND_INTERVAL_MS   10000   // Send to Firebase every 10 sec
+
+// ---- Globals ----
+float gFuel     = 0;
+float gAdul     = 0;
+float gLat      = 9.9252;
+float gLon      = 78.1198;
+float gFasTag   = 300.0;   // In rupees — update from RFID read or fixed value
+bool  gEngineOn = false;
+int   gRSSI     = 0;
+unsigned long lastSend = 0;
+
+void setup() {
+  Serial.begin(115200);
+  delay(500);
+  Serial.println("=== CabFleet Pro ESP32 ===");
+  Serial.println("Collection: Vehicle");
+
+  pinMode(ENGINE_RELAY_PIN, INPUT);
+
+  // Connect WiFi
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  Serial.print("Connecting to WiFi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500); Serial.print(".");
+  }
+  Serial.println("\\nWiFi Connected!");
+  Serial.println("IP: " + WiFi.localIP().toString());
+}
+
+void loop() {
+  readSensors();
+
+  if (millis() - lastSend >= SEND_INTERVAL_MS) {
+    sendToFirebase();
+    lastSend = millis();
+  }
+
+  delay(100);
+}
+
+void readSensors() {
+  // --- Fuel Level (resistive float sensor) ---
+  int rawFuel = analogRead(FUEL_SENSOR_PIN);
+  gFuel = map(rawFuel, 0, 4095, 0, 100);
+  gFuel = constrain(gFuel, 0, 100);
+
+  // --- Adulteration (NIR optical sensor) ---
+  int rawAdul = analogRead(ADUL_SENSOR_PIN);
+  gAdul = map(rawAdul, 0, 4095, 0, 50);
+  gAdul = constrain(gAdul, 0, 50);
+
+  // --- FASTag Balance ---
+  // Option 1: Read from RC522 RFID → get stored balance
+  // Option 2: Static value updated via app
+  // Option 3: Read analog signal from FASTag reader (if supported)
+  // For now, use hardcoded or manually updated value:
+  // gFasTag = readFasTagBalance();   // uncomment if RFID module connected
+  // gFasTag = 320.0;  // manually set if not reading from hardware
+
+  // --- Engine Status ---
+  gEngineOn = (digitalRead(ENGINE_RELAY_PIN) == HIGH);
+
+  // --- WiFi RSSI ---
+  gRSSI = WiFi.RSSI();
+
+  // --- GPS (TinyGPS++ library) ---
+  // Install: TinyGPS++ by Mikal Hart
+  // while (Serial2.available()) gps.encode(Serial2.read());
+  // if (gps.location.isValid()) {
+  //   gLat = gps.location.lat();
+  //   gLon = gps.location.lng();
+  // }
+
+  Serial.printf("[SENSORS] Fuel:%.1f%% Adul:%.1f%% FASTag:Rs%.0f Engine:%s RSSI:%ddBm\\n",
+    gFuel, gAdul, gFasTag, gEngineOn?"ON":"OFF", gRSSI);
+}
+
+void sendToFirebase() {
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("WiFi disconnected! Reconnecting...");
+    WiFi.reconnect();
+    return;
+  }
+
+  // Firestore REST API — "Vehicle" collection
+  String url = "https://firestore.googleapis.com/v1/projects/";
+  url += FIREBASE_PROJECT;
+  url += "/databases/(default)/documents/Vehicle/";
+  url += VEHICLE_ID;
+  url += "?key=";
+  url += FIREBASE_API_KEY;
+
+  // Build Firestore JSON document
+  StaticJsonDocument<700> doc;
+  JsonObject fields = doc.createNestedObject("fields");
+
+  fields["fuel"]["doubleValue"]          = gFuel;
+  fields["adulteration"]["doubleValue"]  = gAdul;
+  fields["lat"]["doubleValue"]           = gLat;
+  fields["lon"]["doubleValue"]           = gLon;
+  fields["toll"]["doubleValue"]          = gFasTag;
+  fields["rssi"]["integerValue"]         = String(gRSSI);
+  fields["status"]["stringValue"]        = gEngineOn ? "running" : "parked";
+  fields["driver_name"]["stringValue"]   = DRIVER_NAME;
+  fields["car"]["stringValue"]           = CAR_NUMBER;
+
+  String jsonBody;
+  serializeJson(doc, jsonBody);
+
+  HTTPClient http;
+  http.begin(url);
+  http.addHeader("Content-Type", "application/json");
+
+  // PATCH = upsert (create or update)
+  int httpCode = http.sendRequest("PATCH", jsonBody);
+
+  if (httpCode == 200 || httpCode == 201) {
+    Serial.println("[FIREBASE] ✓ Data sent to 'Vehicle' collection!");
+  } else {
+    Serial.printf("[FIREBASE] Error: HTTP %d\\n", httpCode);
+  }
+
+  http.end();
+}
+
+// ---- Optional: FASTag balance reader ----
+// float readFasTagBalance() {
+//   // If RC522 RFID connected: read NFC tag balance
+//   // Return balance in rupees
+//   return 300.0;
+// }`;
+
+function displayArduinoCode() {
+  const el = document.getElementById('arduino-code-display');
+  // Simple syntax highlighting
+  let html = ARDUINO_CODE
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/(\/\/[^\n]*)/g,'<span class="code-comment">$1</span>')
+    .replace(/\b(void|const|char|float|int|bool|String|while|if|else|return|include|define|static)\b/g,'<span class="code-kw">$1</span>')
+    .replace(/(Serial|WiFi|HTTPClient|http|doc|fields|gps)\b/g,'<span class="code-fn">$1</span>')
+    .replace(/"([^"]*)"/g,'<span class="code-str">"$1"</span>')
+    .replace(/\b(\d+\.?\d*)\b/g,'<span class="code-num">$1</span>');
+  el.innerHTML = html;
+}
+
+function copyArduinoCode() {
+  navigator.clipboard.writeText(ARDUINO_CODE).then(()=>{
+    alert('Arduino code copied! ✅\n\nArduino IDE-ல் paste பண்ணி flash பண்ணுங்கள்.');
+  });
+}
+
+// ====== TABS ======
+function switchTab(name) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  const tabMap = {owner:0,driver:1,esp32:2,fuel:3,toll:4,log:5,hwsetup:6,firebaseguide:7};
+  if(tabMap[name] !== undefined)
+    document.querySelectorAll('.tab')[tabMap[name]].classList.add('active');
+  if(name === 'hwsetup') renderHwCarConfig();
+}
+
+// ====== HARDWARE PANEL ======
+function renderHwCarConfig() {
+  const D = window.DRIVERS || [];
+  const el = document.getElementById('hw-car-config');
+  if(!el) return;
+  const isFbLive = document.getElementById('fb-status')?.classList.contains('connected');
+
+  // Update status banner
+  if(isFbLive) {
+    document.getElementById('hw-status-banner').style.background = 'rgba(0,212,170,0.08)';
+    document.getElementById('hw-status-banner').style.borderColor = 'rgba(0,212,170,0.3)';
+    document.getElementById('hw-status-text').style.color = 'var(--safe)';
+    document.getElementById('hw-status-text').textContent = '✅ Firebase Live! Hardware connected & sending data';
+    document.getElementById('hw-status-sub').textContent = 'Real sensor readings active. Simulator stopped.';
+  }
+
+  el.innerHTML = D.map((d,i) => {
+    const isOnline = d.rssi && d.rssi > -95;
+    const fbFire = isFbLive ? '🔥' : '⚙️';
+    return `<div style="background:var(--surface);border:1px solid ${isOnline?'rgba(0,212,170,0.3)':'var(--border)'};border-radius:12px;padding:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-family:var(--font-mono);font-size:13px;color:var(--accent);font-weight:700">${d.car}</div>
+        <div style="font-size:11px;padding:3px 8px;border-radius:10px;background:${isOnline?'rgba(0,212,170,0.1)':'rgba(74,85,104,0.3)'};color:${isOnline?'var(--safe)':'var(--text3)'};border:1px solid ${isOnline?'rgba(0,212,170,0.3)':'var(--border)'}">
+          ${isOnline?'🟢 ESP32 Online':'⚫ Offline'}
+        </div>
+      </div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px">${d.emoji} ${d.name}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px">
+        <div style="background:var(--surface2);border-radius:6px;padding:8px">
+          <div style="color:var(--text2)">⛽ Fuel</div>
+          <div style="font-family:var(--font-mono);color:${d.fuel<20?'var(--danger)':d.fuel<40?'var(--warn)':'var(--safe)'};font-weight:700;font-size:14px">${d.fuel.toFixed(1)}%</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:6px;padding:8px">
+          <div style="color:var(--text2)">🧪 Adul</div>
+          <div style="font-family:var(--font-mono);color:${d.adul>25?'var(--danger)':d.adul>15?'var(--warn)':'var(--safe)'};font-weight:700;font-size:14px">${d.adul.toFixed(1)}%</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:6px;padding:8px">
+          <div style="color:var(--text2)">💳 FASTag</div>
+          <div style="font-family:var(--font-mono);color:${d.toll<100?'var(--danger)':d.toll<300?'var(--warn)':'var(--safe)'};font-weight:700;font-size:14px">₹${d.toll.toFixed(0)}</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:6px;padding:8px">
+          <div style="color:var(--text2)">📡 Signal</div>
+          <div style="font-family:var(--font-mono);color:#ff6eb4;font-weight:700;font-size:14px">${d.rssi||'---'}dBm</div>
+        </div>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:var(--text3)">
+        ${fbFire} ${isFbLive?'Firebase live data':'Simulator data'} &nbsp;|&nbsp;
+        📍 GPS: ${d.gps_fix?'FIX':'NO FIX'} &nbsp;|&nbsp;
+        🔧 ${d.status.toUpperCase()}
+      </div>
+      <div style="margin-top:8px;font-family:var(--font-mono);font-size:10px;color:var(--text3);background:var(--bg);border-radius:4px;padding:6px">
+        VEHICLE_ID = "${d.car}"
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function runHwCheck() {
+  const D = window.DRIVERS || [];
+  const isFbLive = document.getElementById('fb-status')?.classList.contains('connected');
+  const el = document.getElementById('hw-test-output');
+  const wrap = document.getElementById('hw-test-results');
+  wrap.style.display = 'block';
+
+  const lines = [];
+  lines.push(`<span style="color:var(--safe)">▶ CabFleet Pro — Hardware Self-Test</span>`);
+  lines.push(`<span style="color:var(--text3)">${new Date().toLocaleString('en-IN')}</span>`);
+  lines.push('');
+  lines.push(`Firebase: <span style="color:${isFbLive?'var(--safe)':'var(--warn)'}">${isFbLive?'✓ CONNECTED — Real data':'⚠ NOT connected — Simulator mode'}</span>`);
+  lines.push(`Vehicles loaded: <span style="color:var(--accent)">${D.length}</span>`);
+  lines.push(`Simulator running: <span style="color:${simulatorTimer?'var(--warn)':'var(--safe)'}">${simulatorTimer?'YES (will stop when Firebase connects)':'NO'}</span>`);
+  lines.push('');
+  lines.push(`<span style="color:var(--text2)">── Vehicle Status ──</span>`);
+  D.forEach(d => {
+    const fuelOk = d.fuel >= 20;
+    const adulOk = d.adul <= 20;
+    const tollOk = d.toll >= 100;
+    const espOk  = d.rssi && d.rssi > -95;
+    lines.push(`${d.car} | Fuel:${fuelOk?'✓':'✗'} Adul:${adulOk?'✓':'✗'} Toll:${tollOk?'✓':'✗'} ESP32:${espOk?'✓ ONLINE':'○ offline'}`);
+  });
+  lines.push('');
+  if(!isFbLive) {
+    lines.push(`<span style="color:var(--warn)">⚠ Tomorrow: ESP32 flash → connect → "Firebase ✓" serial message wait</span>`);
+    lines.push(`<span style="color:var(--warn)">⚠ Then this dashboard: Simulator stops, real readings start!</span>`);
+  } else {
+    lines.push(`<span style="color:var(--safe)">✅ All systems operational. Real hardware data flowing!</span>`);
+  }
+
+  el.innerHTML = lines.join('<br>');
+  addLog('info', 'Hardware self-test run completed');
+}
+
+
+// ====== CLOCK ======
+function updateClock() {
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-IN');
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ====== INIT ======
+function init() {
+  renderBunks();
+  displayArduinoCode();
+  addCrtLog('CabFleet Pro CRT Terminal initialized');
+  addCrtLog('Waiting for Firebase data...');
+  addLog('info', 'CabFleet Pro started. Connecting to Firebase...');
+}
+
+init();
+</script>
+
+</div><!-- /app-screen -->
+</body>
+</html>
